@@ -1,0 +1,120 @@
+#ifndef BOARD_H
+#define BOARD_H
+
+#include <string>
+#include <vector>
+
+#include "types.h"
+#include "Move.h"
+
+typedef Piece _Piece;
+
+// TODO Needs to hold halfmoves (upto 100)
+// TODO Needs to hold castling rights
+// TODO Needs to hold ep state
+// TODO Needs to hold captured piece
+class MoveCache {
+    private:
+        int halfmoves;
+        int castling_rights;
+        BBOARD ep;
+        _Piece piece;
+        _Piece capture;
+    public:
+        // MoveCache(int _halfmoves, int _castling_rights, BBOARD _ep ) {
+        //     halfmoves = _halfmoves;
+        //     castling_rights = _castling_rights;
+        //     ep = _ep;
+        // }
+        MoveCache(int _halfmoves, int _castling_rights, BBOARD _ep, _Piece _piece, _Piece _capture) {
+            halfmoves = _halfmoves;
+            castling_rights = _castling_rights;
+            ep = _ep;
+            piece = _piece;
+            capture = _capture;
+        }
+
+        int getHalfMoves() { return halfmoves; }
+        int getCastlingRights() { return castling_rights; }
+        BBOARD getEP() { return ep; }
+        _Piece getPiece() { return piece; }
+        _Piece getCapturedPiece() { return capture; }
+};
+
+class Board {
+    private:
+        int ply;
+        int halfmoves;
+        int castling_rights;
+        std::vector<MoveCache> cache;
+        BBOARD ep;
+        BBOARD bbPieces[14];
+        BBOARD bbEmpty;
+        BBOARD bbOccupied;
+
+    public:
+        // Members
+        enum Piece {
+            pWhite,
+            pBlack,
+            pWhitePawn,
+            pBlackPawn,
+            pWhiteKnight,
+            pBlackKnight,
+            pWhiteBishop,
+            pBlackBishop,
+            pWhiteRook,
+            pBlackRook,
+            pWhiteQueen,
+            pBlackQueen,
+            pWhiteKing,
+            pBlackKing,
+        };
+        // Constructors
+        Board();
+        Board(std::string);
+
+        // Methods
+        int getFullMoveCount() { return (ply / 2) + 1; }
+        int getHalfMoveClock() { return halfmoves; }
+        Color getSideToMove() { return static_cast<Color>(ply % 2); }
+        BBOARD getEmpty() const { return bbEmpty; }
+        BBOARD getOccupied() const { return bbOccupied; }
+        BBOARD getPiece(Board::Piece piece) const { return bbPieces[piece]; }
+        BBOARD getWhite() const { return bbPieces[pWhite]; }
+        BBOARD getBlack() const { return bbPieces[pBlack]; }
+        BBOARD getWhitePawns() const { return bbPieces[pWhitePawn]; }
+        BBOARD getBlackPawns() const { return bbPieces[pBlackPawn]; }
+        BBOARD getPawns(Color color) const { return bbPieces[pWhitePawn + color]; }
+        BBOARD getWhiteRooks() const { return bbPieces[pWhiteRook]; }
+        BBOARD getBlackRooks() const { return bbPieces[pBlackRook]; }
+        BBOARD getRooks(Color color) const { return bbPieces[pWhiteRook + color]; }
+        BBOARD getWhiteKnights() const { return bbPieces[pWhiteKnight]; }
+        BBOARD getBlackKnights() const { return bbPieces[pBlackKnight]; }
+        BBOARD getKnights(Color color) const { return bbPieces[pWhiteKnight + color]; }
+        BBOARD getWhiteBishops() const { return bbPieces[pWhiteBishop]; }
+        BBOARD getBlackBishops() const { return bbPieces[pBlackBishop]; }
+        BBOARD getBishops(Color color) const { return bbPieces[pWhiteBishop + color]; }
+        BBOARD getWhiteQueens() const { return bbPieces[pWhiteQueen]; }
+        BBOARD getBlackQueens() const { return bbPieces[pBlackQueen]; }
+        BBOARD getQueens(Color color) const { return bbPieces[pWhiteQueen + color]; }
+        BBOARD getWhiteKing() const { return bbPieces[pWhiteKing]; }
+        BBOARD getBlackKing() const { return bbPieces[pBlackKing]; }
+        BBOARD getKings(Color color) const { return bbPieces[pWhiteKing + color]; }
+
+        _Piece _apply_move(Move, Color, _Piece);
+        void _apply_move(Move, Color, _Piece, _Piece);
+        void make(Move);
+        void unmake(Move);
+
+        std::vector<Move> getPsudoLegalMoves();
+        bool inCheck();
+        bool leftInCheck();
+        bool inCheck(Color);
+        _Piece whyInCheck(Color);
+
+        std::string stringify();
+        std::string fen();
+};
+
+#endif
