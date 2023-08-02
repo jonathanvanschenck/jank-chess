@@ -43,6 +43,13 @@ namespace BBoard {
 
     // Eval
     int MS1Idx(BBOARD board) {
+        int result = 0;
+        while ( board ) {
+            result = LS1Idx(popLS1B(&board));
+        }
+        return result;
+    }
+    int LS1Idx(BBOARD board) {
         // Many thanks to https://stackoverflow.com/a/21439175
         return __builtin_ffsll( board ) - 1;
     }

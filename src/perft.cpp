@@ -7,6 +7,7 @@ using namespace std;
 #include "BBoard.h"
 #include "Board.h"
 #include "Attack.h"
+#include "Zobrist.h"
 #include "Magic.h"
 #include "FindMagic.h"
 #include "Move.h"
@@ -14,34 +15,13 @@ using namespace std;
 #include <climits>
 #include <vector>
 
-// GOOD up to depth 5
-int POSITION = 1;
 Board board;
-
-// GOOD up to depth 5
-// int POSITION = 2;
-// Board board("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -");
-
-// GODO up to depth 5
-// int POSITION = 3;
-// Board board("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - -");
-
-// GOOD up to depth 5
-// int POSITION = 4;
-// Board board("r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq -");
-
-// GOOD up to depth 5
-// int POSITION = 5;
-// Board board("rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8");
-
-// Good up to depth 5
-// int POSITION = 6;
-// Board board("r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10");
 
 constexpr int DEPTH_MAX = 5;
 
 void init() {
     Attack::init();
+    Zobrist::init();
 }
 
 class DepthResult {
@@ -53,6 +33,7 @@ class DepthResult {
         long long unsigned promotions;
         long long unsigned checks;
         long long unsigned mates;
+        long long unsigned zobrist;
 
         DepthResult() {
             nodes = 0ULL;
@@ -62,6 +43,7 @@ class DepthResult {
             promotions = 0ULL;
             checks = 0ULL;
             mates = 0ULL;
+            zobrist = 0ULL;
         }
 
         void operator+=(DepthResult other) {
@@ -72,6 +54,7 @@ class DepthResult {
             promotions += other.promotions;
             checks += other.checks;
             mates += other.mates;
+            zobrist += other.zobrist;
         }
 };
 
@@ -95,6 +78,7 @@ DepthResult perft(int depth, Move m) {
             }
             if ( mated ) dr.mates += 1ULL;
         }
+        if ( board.getZobristHash() != board.calculateZobristHash() ) dr.zobrist += 1ULL;
         ml.pop_back();
         return dr;
     }
@@ -120,20 +104,45 @@ int main ()
 {
     init();
 
+    // GOOD up to depth 5
+    // int POSITION = 1;
+    // board.loadFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -");
+
+    // GOOD up to depth 5
+    // int POSITION = 2;
+    // board.loadFen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -");
+
+    // GODO up to depth 5
+    // int POSITION = 3;
+    // board.loadFen("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - -");
+
+    // GOOD up to depth 5
+    // int POSITION = 4;
+    // board.loadFen("r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq -");
+
+    // GOOD up to depth 5
+    // int POSITION = 5;
+    // board.loadFen("rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8");
+
+    // Good up to depth 5
+    int POSITION = 6;
+    board.loadFen("r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10");
+
+
     // DepthResult res = perft(3);
     // printf("         % 10s % 10s % 8s % 10s % 8s % 8s % 8s\n", "Nodes", "Captures", "EP", "Castles", "Promos", "Checks", "Mates");
     // printf("perft(?)=% 10llu % 10llu % 8llu % 10llu % 8llu % 8llu % 8llu\n", res.nodes, res.captures, res.ep, res.castles, res.promotions, res.checks, res.mates);
     // return 0;
 
     printf("Running perft on position %d\n\n", POSITION);
-    printf("         % 10s % 10s % 8s % 10s % 8s % 8s % 8s\n", "Nodes", "Captures", "EP", "Castles", "Promos", "Checks", "Mates");
+    printf("         % 10s % 10s % 8s % 10s % 8s % 8s % 8s % 4s\n", "Nodes", "Captures", "EP", "Castles", "Promos", "Checks", "Mates", "Zobrist");
     for ( int depth = 1; depth <= DEPTH_MAX; depth++ ) {
         auto start = chrono::high_resolution_clock::now();
         DepthResult res = perft(depth);
         auto end = chrono::high_resolution_clock::now();
         auto dur = chrono::duration_cast<chrono::microseconds>(end - start);
         float us = static_cast<float>(dur.count());
-        printf("perft(%d)=% 10llu % 10llu % 8llu % 10llu % 8llu % 8llu % 8llu (%4.2fs | %4.0fus/kn)\n", depth, res.nodes, res.captures, res.ep, res.castles, res.promotions, res.checks, res.mates, us*1e-6, us*1e3/static_cast<float>(res.nodes));
+        printf("perft(%d)=% 10llu % 10llu % 8llu % 10llu % 8llu % 8llu % 8llu % 4llu (%4.2fs | %4.0fus/kn)\n", depth, res.nodes, res.captures, res.ep, res.castles, res.promotions, res.checks, res.mates, res.zobrist, us*1e-6, us*1e3/static_cast<float>(res.nodes));
     }
 
     return 0;

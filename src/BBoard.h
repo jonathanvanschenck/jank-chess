@@ -49,6 +49,7 @@ namespace BBoard {
 
     // Eval
     int MS1Idx(BBOARD);
+    int LS1Idx(BBOARD);
     bool isEmpty(BBOARD);
     bool isSinglyOccupied(BBOARD);
     int popCount(BBOARD);

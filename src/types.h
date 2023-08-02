@@ -30,4 +30,5 @@ enum Piece {
     King
 };
 
+
 #endif

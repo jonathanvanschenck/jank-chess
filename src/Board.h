@@ -7,12 +7,11 @@
 #include "types.h"
 #include "Move.h"
 
+const std::string INITIAL_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+
+// Create a copy to prevent name-collision below
 typedef Piece _Piece;
 
-// TODO Needs to hold halfmoves (upto 100)
-// TODO Needs to hold castling rights
-// TODO Needs to hold ep state
-// TODO Needs to hold captured piece
 class MoveCache {
     private:
         int halfmoves;
@@ -21,11 +20,6 @@ class MoveCache {
         _Piece piece;
         _Piece capture;
     public:
-        // MoveCache(int _halfmoves, int _castling_rights, BBOARD _ep ) {
-        //     halfmoves = _halfmoves;
-        //     castling_rights = _castling_rights;
-        //     ep = _ep;
-        // }
         MoveCache(int _halfmoves, int _castling_rights, BBOARD _ep, _Piece _piece, _Piece _capture) {
             halfmoves = _halfmoves;
             castling_rights = _castling_rights;
@@ -39,6 +33,7 @@ class MoveCache {
         BBOARD getEP() { return ep; }
         _Piece getPiece() { return piece; }
         _Piece getCapturedPiece() { return capture; }
+
 };
 
 class Board {
@@ -51,6 +46,7 @@ class Board {
         BBOARD bbPieces[14];
         BBOARD bbEmpty;
         BBOARD bbOccupied;
+        BBOARD zHash;
 
     public:
         // Members
@@ -73,6 +69,7 @@ class Board {
         // Constructors
         Board();
         Board(std::string);
+        void loadFen(std::string);
 
         // Methods
         int getFullMoveCount() { return (ply / 2) + 1; }
@@ -101,17 +98,25 @@ class Board {
         BBOARD getWhiteKing() const { return bbPieces[pWhiteKing]; }
         BBOARD getBlackKing() const { return bbPieces[pBlackKing]; }
         BBOARD getKings(Color color) const { return bbPieces[pWhiteKing + color]; }
+        BBOARD getZobristHash() const { return zHash; }
+
+        BBOARD calculateZobristHash();
 
         _Piece _apply_move(Move, Color, _Piece);
         void _apply_move(Move, Color, _Piece, _Piece);
         void make(Move);
         void unmake(Move);
 
+        int material(Color);
+        int eval();
+        int quiesce();
+
         std::vector<Move> getPsudoLegalMoves();
         bool inCheck();
         bool leftInCheck();
         bool inCheck(Color);
         _Piece whyInCheck(Color);
+        bool isEndGame();
 
         std::string stringify();
         std::string fen();

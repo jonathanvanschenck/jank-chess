@@ -7,6 +7,8 @@
 #include "BBoard.h"
 #include "Move.h"
 #include "Attack.h"
+#include "Zobrist.h"
+#include "PieceTable.h"
 
 
 // Constructors
@@ -14,6 +16,7 @@ Board::Board () {
     ply = 0;
     halfmoves = 0;
     castling_rights = 15; // 1111
+    cache.clear();
     ep = BBoard::empty;
     bbPieces[pWhite] =       BBoard::fromRank(0) | BBoard::fromRank(1);
     bbPieces[pBlack] =       BBoard::fromRank(6) | BBoard::fromRank(7);
@@ -31,9 +34,18 @@ Board::Board () {
     bbPieces[pBlackKing] =   BBoard::fromIdx(63 - 3);
     bbOccupied =             bbPieces[pWhite] | bbPieces[pBlack];
     bbEmpty =                ~bbOccupied;
-
+    
+    zHash = calculateZobristHash();
 }
 Board::Board (std::string fen) {
+    loadFen(fen);
+}
+void Board::loadFen(std::string fen) {
+    // TODO : add some regex validation??
+
+    // Clean out representation
+    cache.clear();
+    zHash = BBoard::empty;
     bbPieces[pWhitePawn] =   BBoard::empty;
     bbPieces[pBlackPawn] =   BBoard::empty;
     bbPieces[pWhiteRook] =   BBoard::empty;
@@ -71,28 +83,40 @@ Board::Board (std::string fen) {
             idx += 7;
         } else if ( chr == "p" ) {
             bbPieces[pBlackPawn] |= BBoard::fromIdx(idx);
+            zHash ^= Zobrist::getPieceHash(Pawn, black, idx);
         } else if ( chr == "P" ) {
             bbPieces[pWhitePawn] |= BBoard::fromIdx(idx);
+            zHash ^= Zobrist::getPieceHash(Pawn, white, idx);
         } else if ( chr == "r" ) {
             bbPieces[pBlackRook] |= BBoard::fromIdx(idx);
+            zHash ^= Zobrist::getPieceHash(Rook, black, idx);
         } else if ( chr == "R" ) {
             bbPieces[pWhiteRook] |= BBoard::fromIdx(idx);
+            zHash ^= Zobrist::getPieceHash(Rook, white, idx);
         } else if ( chr == "n" ) {
             bbPieces[pBlackKnight] |= BBoard::fromIdx(idx);
+            zHash ^= Zobrist::getPieceHash(Knight, black, idx);
         } else if ( chr == "N" ) {
             bbPieces[pWhiteKnight] |= BBoard::fromIdx(idx);
+            zHash ^= Zobrist::getPieceHash(Knight, white, idx);
         } else if ( chr == "b" ) {
             bbPieces[pBlackBishop] |= BBoard::fromIdx(idx);
+            zHash ^= Zobrist::getPieceHash(Bishop, black, idx);
         } else if ( chr == "B" ) {
             bbPieces[pWhiteBishop] |= BBoard::fromIdx(idx);
+            zHash ^= Zobrist::getPieceHash(Bishop, white, idx);
         } else if ( chr == "q" ) {
             bbPieces[pBlackQueen] |= BBoard::fromIdx(idx);
+            zHash ^= Zobrist::getPieceHash(Queen, black, idx);
         } else if ( chr == "Q" ) {
             bbPieces[pWhiteQueen] |= BBoard::fromIdx(idx);
+            zHash ^= Zobrist::getPieceHash(Queen, white, idx);
         } else if ( chr == "k" ) {
             bbPieces[pBlackKing] |= BBoard::fromIdx(idx);
+            zHash ^= Zobrist::getPieceHash(King, black, idx);
         } else if ( chr == "K" ) {
             bbPieces[pWhiteKing] |= BBoard::fromIdx(idx);
+            zHash ^= Zobrist::getPieceHash(King, white, idx);
         }
         idx++;
     }
@@ -100,7 +124,10 @@ Board::Board (std::string fen) {
     // Side to move
     chr = fen.substr(i++,1);
     Color stm = white;
-    if ( chr == "b" ) stm = black;
+    if ( chr == "b" ) {
+        stm = black;
+        zHash ^= Zobrist::getBlackToMove();
+    }
 
     i++; // Eat the space
 
@@ -116,6 +143,7 @@ Board::Board (std::string fen) {
             castling_rights |= 1;
         }
     }
+    zHash ^= Zobrist::getCastling(castling_rights);
 
     // En Passant
     chr = fen.substr(i++,1);
@@ -154,6 +182,7 @@ Board::Board (std::string fen) {
         }
 
         ep = BBoard::fromIdx(ep_sq);
+        zHash ^= Zobrist::getEnPassant(ep_sq);
     } else {
         ep = BBoard::empty;
     }
@@ -180,6 +209,26 @@ Board::Board (std::string fen) {
     bbEmpty = ~bbOccupied;
 
 }
+BBOARD Board::calculateZobristHash() {
+    BBOARD h = BBoard::empty;
+
+    BBOARD b;
+    for ( int p = Pawn; p <= King; p++ ) {
+        for ( int c = white; c <= black; c++ ) {
+            b = bbPieces[2*(1+p) + c];
+            while (b) {
+                int sqidx = BBoard::LS1Idx(BBoard::popLS1B(&b));
+                h ^= Zobrist::getPieceHash(static_cast<_Piece>(p), static_cast<Color>(c), sqidx);
+            };
+        };
+    };
+
+    h ^= Zobrist::getCastling(castling_rights);
+    if ( ep ) h ^= Zobrist::getEnPassant(BBoard::LS1Idx(ep));
+    if ( getSideToMove() ) h ^= Zobrist::getBlackToMove();
+
+    return h;
+};
 
 // Methods
 std::string Board::stringify() {
@@ -335,7 +384,7 @@ std::string Board::fen() {
         output.append(" -");
     } else {
         output.append(" ");
-        int idx = BBoard::MS1Idx(ep);
+        int idx = BBoard::LS1Idx(ep);
         switch ( idx % 8 ) {
             case 0:
                 output.append("a");
@@ -416,12 +465,12 @@ std::vector<Move> Board::getPsudoLegalMoves() {
     // Pawn Moves
     bb = bbPieces[Board::pWhitePawn + stm];
     while ( bb ) {
-        fromIdx = BBoard::MS1Idx(BBoard::popLS1B(&bb));
+        fromIdx = BBoard::LS1Idx(BBoard::popLS1B(&bb));
         // Attacks
         BBOARD tos = Attack::getPawnAttacks(fromIdx, stm, opp_occ_and_ep);
         while ( tos ) {
             to = BBoard::popLS1B(&tos);
-            toIdx = BBoard::MS1Idx(to);
+            toIdx = BBoard::LS1Idx(to);
             if ( ( toIdx / 8 ) == (7 - 7*stm) ) {
                 // Promotion
                 moves.emplace_back(fromIdx, toIdx, Queen, 1);
@@ -435,7 +484,7 @@ std::vector<Move> Board::getPsudoLegalMoves() {
         // Single Pushes
         tos = Attack::getPawnSinglePush(fromIdx, stm, bbEmpty);
         while ( tos ) {
-            toIdx = BBoard::MS1Idx(BBoard::popLS1B(&tos));
+            toIdx = BBoard::LS1Idx(BBoard::popLS1B(&tos));
             if ( ( toIdx / 8 ) == (7 - 7*stm) ) {
                 // Promotion
                 moves.emplace_back(fromIdx, toIdx, Queen, 0); // No need to include rook/bishop
@@ -449,7 +498,7 @@ std::vector<Move> Board::getPsudoLegalMoves() {
         // Double Pushes
         tos = Attack::getPawnDoublePush(fromIdx, stm, bbEmpty);
         while ( tos ) {
-            toIdx = BBoard::MS1Idx(BBoard::popLS1B(&tos));
+            toIdx = BBoard::LS1Idx(BBoard::popLS1B(&tos));
             moves.emplace_back(fromIdx, toIdx, Move::DoublePawnPush);
         }
     }
@@ -457,11 +506,11 @@ std::vector<Move> Board::getPsudoLegalMoves() {
     // Knight Moves
     bb = bbPieces[Board::pWhiteKnight + stm];
     while ( bb ) {
-        fromIdx = BBoard::MS1Idx(BBoard::popLS1B(&bb));
+        fromIdx = BBoard::LS1Idx(BBoard::popLS1B(&bb));
         BBOARD tos = Attack::getKnightAttacks(fromIdx);
         while ( tos ) {
             to = BBoard::popLS1B(&tos);
-            toIdx = BBoard::MS1Idx(to);
+            toIdx = BBoard::LS1Idx(to);
             if ( !(self_occ & to ) ) moves.emplace_back(fromIdx, toIdx, (opp_occ & to) ? Move::Capture : Move::Quiet);
         }
     }
@@ -469,11 +518,11 @@ std::vector<Move> Board::getPsudoLegalMoves() {
     // Bishop Moves
     bb = bbPieces[Board::pWhiteBishop + stm];
     while ( bb ) {
-        fromIdx = BBoard::MS1Idx(BBoard::popLS1B(&bb));
+        fromIdx = BBoard::LS1Idx(BBoard::popLS1B(&bb));
         BBOARD tos = Attack::getBishopAttacks(fromIdx, bbOccupied);
         while ( tos ) {
             to = BBoard::popLS1B(&tos);
-            toIdx = BBoard::MS1Idx(to);
+            toIdx = BBoard::LS1Idx(to);
             if ( !(self_occ & to ) ) moves.emplace_back(fromIdx, toIdx, (opp_occ & to) ? Move::Capture : Move::Quiet);
         }
     }
@@ -481,11 +530,11 @@ std::vector<Move> Board::getPsudoLegalMoves() {
     // Rook Moves
     bb = bbPieces[Board::pWhiteRook + stm];
     while ( bb ) {
-        fromIdx = BBoard::MS1Idx(BBoard::popLS1B(&bb));
+        fromIdx = BBoard::LS1Idx(BBoard::popLS1B(&bb));
         BBOARD tos = Attack::getRookAttacks(fromIdx, bbOccupied);
         while ( tos ) {
             to = BBoard::popLS1B(&tos);
-            toIdx = BBoard::MS1Idx(to);
+            toIdx = BBoard::LS1Idx(to);
             if ( !(self_occ & to ) ) moves.emplace_back(fromIdx, toIdx, (opp_occ & to) ? Move::Capture : Move::Quiet);
         }
     }
@@ -493,22 +542,22 @@ std::vector<Move> Board::getPsudoLegalMoves() {
     // Queen Moves
     bb = bbPieces[Board::pWhiteQueen + stm];
     while ( bb ) {
-        fromIdx = BBoard::MS1Idx(BBoard::popLS1B(&bb));
+        fromIdx = BBoard::LS1Idx(BBoard::popLS1B(&bb));
         BBOARD tos = Attack::getQueenAttacks(fromIdx, bbOccupied);
         while ( tos ) {
             to = BBoard::popLS1B(&tos);
-            toIdx = BBoard::MS1Idx(to);
+            toIdx = BBoard::LS1Idx(to);
             if ( !(self_occ & to ) ) moves.emplace_back(fromIdx, toIdx, (opp_occ & to) ? Move::Capture : Move::Quiet);
         }
     }
 
     // King Moves
     bb = bbPieces[Board::pWhiteKing + stm];
-    fromIdx = BBoard::MS1Idx(bb);
+    fromIdx = BBoard::LS1Idx(bb);
     BBOARD tos = Attack::getKingAttacks(fromIdx);
     while ( tos ) {
         to = BBoard::popLS1B(&tos);
-        toIdx = BBoard::MS1Idx(to);
+        toIdx = BBoard::LS1Idx(to);
         if ( !(self_occ & to ) ) moves.emplace_back(fromIdx, toIdx, (opp_occ & to) ? Move::Capture : Move::Quiet);
     }
 
@@ -587,7 +636,7 @@ bool Board::leftInCheck() {
     return inCheck(static_cast<Color>((getSideToMove()+1)%2));
 };
 bool Board::inCheck(Color side) {
-    int king_idx = BBoard::MS1Idx(bbPieces[Board::pWhiteKing + side]);
+    int king_idx = BBoard::LS1Idx(bbPieces[Board::pWhiteKing + side]);
     Color oside = static_cast<Color>((side+1)%2);
     return (Attack::getPawnAttacks(king_idx, side, bbPieces[oside]) & bbPieces[Board::pWhitePawn + oside]) ||
            (Attack::getKnightAttacks(king_idx) & bbPieces[Board::pWhiteKnight + oside]) ||
@@ -597,7 +646,7 @@ bool Board::inCheck(Color side) {
            (Attack::getKingAttacks(king_idx) & bbPieces[Board::pWhiteKing + oside]);
 };
 // bool Board::whyInCheck(Color side) {
-//     int king_idx = BBoard::MS1Idx(bbPieces[Board::pWhiteKing + side]);
+//     int king_idx = BBoard::LS1Idx(bbPieces[Board::pWhiteKing + side]);
 //     Color oside = static_cast<Color>((side+1)%2);
 //     if (Attack::getPawnAttacks(king_idx, side, bbPieces[oside]) & bbPieces[Board::pWhitePawn + oside]) return Pawn;
 //     if (Attack::getKnightAttacks(king_idx) & bbPieces[Board::pWhiteKnight + oside]) return 
@@ -609,52 +658,67 @@ bool Board::inCheck(Color side) {
 
 void Board::_apply_move(Move m, Color side, _Piece p, _Piece cp) {
     Color oside = static_cast<Color>((side+1)%2);
+    BBOARD to = m.toBB();
+    BBOARD from = m.fromBB();
 
     if ( m.isCastle() ) {
         Move::CastleDirection dir = m.castleDirection();
-        BBOARD rookdiff;
+        BBOARD rookdiff, rookhashdiff;
         switch (dir) {
             case Move::Kingside:
-                rookdiff = (m.toBB() >> 1) ^ (m.toBB() << 1);
+                rookdiff = (to >> 1) ^ (to << 1);
+                rookhashdiff =  Zobrist::getPieceHash(Rook, side, m.toIdx()+1);
+                rookhashdiff ^= Zobrist::getPieceHash(Rook, side, m.toIdx()-1);
                 break;
             case Move::Queenside:
-                rookdiff = (m.toBB() >> 2) ^ (m.toBB() << 1);
+                rookdiff = (to >> 2) ^ (to << 1);
+                rookhashdiff =  Zobrist::getPieceHash(Rook, side, m.toIdx()+1);
+                rookhashdiff ^= Zobrist::getPieceHash(Rook, side, m.toIdx()-2);
                 break;
         };
         bbPieces[Board::pWhiteRook + side] ^= rookdiff;
+        zHash ^= rookhashdiff;
         bbOccupied ^= rookdiff;
         bbEmpty ^= rookdiff;
         bbPieces[side] ^= rookdiff;
     } else if ( m.isEnPassant() ) {
-        BBOARD pawn;
+        BBOARD pawn, pawnhash;
         switch (side) {
             case white:
-                pawn = m.toBB() >> 8;
+                pawn = to >> 8;
+                pawnhash = Zobrist::getPieceHash(Pawn, oside, m.toIdx()-8);
                 break;
             case black:
-                pawn = m.toBB() << 8;
+                pawn = to << 8;
+                pawnhash = Zobrist::getPieceHash(Pawn, oside, m.toIdx()+8);
                 break;
         }
         bbPieces[Board::pWhitePawn + oside] ^= pawn;
+        zHash ^= pawnhash;
         bbOccupied ^= pawn;
         bbEmpty ^= pawn;
         bbPieces[oside] ^= pawn;
     } else if ( m.isCapture() ) {
-        bbPieces[2*(1+cp) + oside] ^= m.toBB();
-        bbPieces[oside] ^= m.toBB();
-        bbOccupied ^= m.toBB();
-        bbEmpty ^= m.toBB();
+        bbPieces[2*(1+cp) + oside] ^= to;
+        zHash ^= Zobrist::getPieceHash(cp, oside, m.toIdx());
+        bbPieces[oside] ^= to;
+        bbOccupied ^= to;
+        bbEmpty ^= to;
     }
 
-    BBOARD movediff = m.fromBB() ^ m.toBB();
+    BBOARD movediff = from ^ to;
     bbOccupied ^= movediff;
     bbEmpty ^= movediff;
     bbPieces[side] ^= movediff;
     if ( m.isPromotion() ) {
-        bbPieces[2*(1+p) + side] ^= m.fromBB();
-        bbPieces[2*(1+m.promotionPiece()) + side] ^= m.toBB();
+        bbPieces[2*(1+p) + side] ^= from;
+        zHash ^= Zobrist::getPieceHash(p, side, m.fromIdx());
+        bbPieces[2*(1+m.promotionPiece()) + side] ^= to;
+        zHash ^= Zobrist::getPieceHash(m.promotionPiece(), side, m.toIdx());
     } else {
         bbPieces[2*(1+p) + side] ^= movediff;
+        zHash ^= Zobrist::getPieceHash(p, side, m.toIdx());
+        zHash ^= Zobrist::getPieceHash(p, side, m.fromIdx());
     }
 }
 
@@ -664,8 +728,9 @@ _Piece Board::_apply_move(Move m, Color side, _Piece p) {
     if ( m.isEnPassant() ) {
         cp = Pawn;
     } else if ( m.isCapture() ) {
+        BBOARD to = m.toBB();
         for ( int _p = Pawn; _p <= King; _p ++ ) {
-            if ( bbPieces[2*(1+_p) + oside] & m.toBB() ) {
+            if ( bbPieces[2*(1+_p) + oside] & to ) {
                 cp = static_cast<_Piece>(_p);
                 break;
             }
@@ -679,8 +744,9 @@ void Board::make(Move m) {
     Color side = getSideToMove();
     Color oside = static_cast<Color>((side+1)%2);
     _Piece p;
+    BBOARD from = m.fromBB();
     for ( int _p = Pawn; _p <= King; _p ++ ) {
-        if ( bbPieces[2*(1+_p) + side] & m.fromBB() ) {
+        if ( bbPieces[2*(1+_p) + side] & from ) {
             p = static_cast<_Piece>(_p);
             break;
         }
@@ -694,7 +760,9 @@ void Board::make(Move m) {
     // Calculate castling rights
     if ( p == King ) {
         // If you move your king, you loose both
+        zHash ^= Zobrist::getCastling(castling_rights);
         castling_rights = castling_rights & (3 << 2*side);
+        zHash ^= Zobrist::getCastling(castling_rights);
     } else if ( p == Rook ) {
         // If you move your rook off it's starting sqare, you loose that rook's side
         int f = m.fromIdx() % 8;
@@ -702,11 +770,15 @@ void Board::make(Move m) {
         if ( f == 7 && r == 7*side ) {
             // Erase Kingside
             int mask = (-1) ^ (1 << (2*oside + 1));
+            zHash ^= Zobrist::getCastling(castling_rights);
             castling_rights = castling_rights & mask;
+            zHash ^= Zobrist::getCastling(castling_rights);
         } else if ( f == 0 && r == 7*side ) {
             // Erase Queenside
             int mask = (-1) ^ (1 << (2*oside + 0));
+            zHash ^= Zobrist::getCastling(castling_rights);
             castling_rights = castling_rights & mask;
+            zHash ^= Zobrist::getCastling(castling_rights);
         }
 
     }
@@ -718,22 +790,29 @@ void Board::make(Move m) {
         if ( f == 7 && r == 7*oside ) {
             // Erase Kingside
             int mask = (-1) ^ (1 << (2*side + 1));
+            zHash ^= Zobrist::getCastling(castling_rights);
             castling_rights = castling_rights & mask;
+            zHash ^= Zobrist::getCastling(castling_rights);
         } else if ( f == 0 && r == 7*oside ) {
             // Erase Queenside
             int mask = (-1) ^ (1 << (2*side + 0));
+            zHash ^= Zobrist::getCastling(castling_rights);
             castling_rights = castling_rights & mask;
+            zHash ^= Zobrist::getCastling(castling_rights);
         }
     }
 
     // Update EP
+    if ( ep ) zHash ^= Zobrist::getEnPassant(BBoard::LS1Idx(ep));
     if ( m.isDoublePawnPush() ) {
         switch (side) {
             case white:
                 ep = m.toBB() >> 8;
+                zHash ^= Zobrist::getEnPassant(m.toIdx() - 8);
                 break;
             case black:
                 ep = m.toBB() << 8;
+                zHash ^= Zobrist::getEnPassant(m.toIdx() + 8);
                 break;
         }
     } else {
@@ -749,6 +828,7 @@ void Board::make(Move m) {
 
     // Update ply
     ply += 1;
+    zHash ^= Zobrist::getBlackToMove();
 };
 void Board::unmake(Move m) {
     Color side = static_cast<Color>((getSideToMove()+1)%2);
@@ -758,9 +838,102 @@ void Board::unmake(Move m) {
 
     // Update bonus fields
     halfmoves = mc.getHalfMoves();
+
+    zHash ^= Zobrist::getCastling(castling_rights);
     castling_rights = mc.getCastlingRights();
+    zHash ^= Zobrist::getCastling(castling_rights);
+
+    if (ep) zHash ^= Zobrist::getEnPassant(BBoard::LS1Idx(ep));
     ep = mc.getEP();
+    if (ep) zHash ^= Zobrist::getEnPassant(BBoard::LS1Idx(ep));
+
     ply -= 1;
+    zHash ^= Zobrist::getBlackToMove();
+
     cache.pop_back();
 };
+
+int Board::material(Color side) {
+    int material = 0;
+    material += 9*BBoard::popCount(bbPieces[pWhiteQueen + side]);
+    material += 5*BBoard::popCount(bbPieces[pWhiteRook + side]);
+    material += 3*BBoard::popCount(bbPieces[pWhiteBishop + side]);
+    material += 3*BBoard::popCount(bbPieces[pWhiteKnight + side]);
+    material += 1*BBoard::popCount(bbPieces[pWhitePawn + side]);
+    return material;
+}
+int Board::eval() {
+    BBOARD b;
+
+    int score = 0;
+
+    // Tomasz Michniewski's Piece Valuation
+    score += 20000*(BBoard::popCount(bbPieces[pWhiteKing]) - BBoard::popCount(bbPieces[pBlackKing]));
+    score +=   900*(BBoard::popCount(bbPieces[pWhiteQueen]) - BBoard::popCount(bbPieces[pBlackQueen]));
+    score +=   500*(BBoard::popCount(bbPieces[pWhiteRook]) - BBoard::popCount(bbPieces[pBlackRook]));
+    score +=   330*(BBoard::popCount(bbPieces[pWhiteBishop]) - BBoard::popCount(bbPieces[pBlackBishop]));
+    score +=   320*(BBoard::popCount(bbPieces[pWhiteKnight]) - BBoard::popCount(bbPieces[pBlackKnight]));
+    score +=   100*(BBoard::popCount(bbPieces[pWhitePawn]) - BBoard::popCount(bbPieces[pBlackPawn]));
+
+    // Pawns
+    b = bbPieces[pWhitePawn];
+    while ( b ) score += PieceTable::WhitePawn[BBoard::LS1Idx(BBoard::popLS1B(&b))];
+    b = bbPieces[pBlackPawn];
+    while ( b ) score -= PieceTable::BlackPawn[BBoard::LS1Idx(BBoard::popLS1B(&b))];
+    // Knights
+    b = bbPieces[pWhiteKnight];
+    while ( b ) score += PieceTable::WhiteKnight[BBoard::LS1Idx(BBoard::popLS1B(&b))];
+    b = bbPieces[pBlackKnight];
+    while ( b ) score -= PieceTable::BlackKnight[BBoard::LS1Idx(BBoard::popLS1B(&b))];
+    // Bishops
+    b = bbPieces[pWhiteBishop];
+    while ( b ) score += PieceTable::WhiteBishop[BBoard::LS1Idx(BBoard::popLS1B(&b))];
+    b = bbPieces[pBlackBishop];
+    while ( b ) score -= PieceTable::BlackBishop[BBoard::LS1Idx(BBoard::popLS1B(&b))];
+    // Rooks
+    b = bbPieces[pWhiteRook];
+    while ( b ) score += PieceTable::WhiteRook[BBoard::LS1Idx(BBoard::popLS1B(&b))];
+    b = bbPieces[pBlackRook];
+    while ( b ) score -= PieceTable::BlackRook[BBoard::LS1Idx(BBoard::popLS1B(&b))];
+    // Queens
+    b = bbPieces[pWhiteQueen];
+    while ( b ) score += PieceTable::WhiteQueen[BBoard::LS1Idx(BBoard::popLS1B(&b))];
+    b = bbPieces[pBlackQueen];
+    while ( b ) score -= PieceTable::BlackQueen[BBoard::LS1Idx(BBoard::popLS1B(&b))];
+
+    // King
+    if ( isEndGame() ) {
+        b = bbPieces[pWhiteKing];
+        while ( b ) score += PieceTable::WhiteKingEnd[BBoard::LS1Idx(BBoard::popLS1B(&b))];
+        b = bbPieces[pBlackKing];
+        while ( b ) score -= PieceTable::BlackKingEnd[BBoard::LS1Idx(BBoard::popLS1B(&b))];
+    } else {
+        b = bbPieces[pWhiteKing];
+        while ( b ) score += PieceTable::WhiteKingMiddle[BBoard::LS1Idx(BBoard::popLS1B(&b))];
+        b = bbPieces[pBlackKing];
+        while ( b ) score -= PieceTable::BlackKingMiddle[BBoard::LS1Idx(BBoard::popLS1B(&b))];
+    }
+
+    return score * (1 - 2*getSideToMove());
+};
+
+int Board::quiesce() {
+    // TODO
+    return eval();
+}
+
+bool Board::isEndGame() {
+    // No Queens
+    if (!bbPieces[pWhiteQueen] && !bbPieces[pBlackQueen]) return true;
+
+    // Must either have no queen or <= 1 minor piece
+    bool rook_or_2_minors;
+    rook_or_2_minors =  bbPieces[pWhiteRook] || (BBoard::popCount(bbPieces[pWhiteKnight]) + BBoard::popCount(bbPieces[pWhiteBishop]) > 1);
+    if ( bbPieces[pWhiteQueen] && rook_or_2_minors ) return false;
+    rook_or_2_minors =  bbPieces[pBlackRook] || (BBoard::popCount(bbPieces[pBlackKnight]) + BBoard::popCount(bbPieces[pBlackBishop]) > 1);
+    if ( bbPieces[pBlackQueen] && rook_or_2_minors ) return false;
+
+    return true;
+};
+
 
