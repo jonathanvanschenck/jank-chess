@@ -1,6 +1,6 @@
-
+.env
 *.bin
 *.o
-*.js
-*.json
+src/*.js
+src/*.json
 node_modules

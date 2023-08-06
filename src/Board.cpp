@@ -937,3 +937,137 @@ bool Board::isEndGame() {
 };
 
 
+Move Board::parseUCIMove(std::string mstring) {
+    int from = 0, to = 0;
+
+    std::string chr;
+    chr = mstring.substr(0,1);
+    if ( chr == "b" ) {
+        from += 1;
+    } else if ( chr == "c" ) {
+        from += 2;
+    } else if ( chr == "d" ) {
+        from += 3;
+    } else if ( chr == "e" ) {
+        from += 4;
+    } else if ( chr == "f" ) {
+        from += 5;
+    } else if ( chr == "g" ) {
+        from += 6;
+    } else if ( chr == "h" ) {
+        from += 7;
+    }
+    chr = mstring.substr(2,1);
+    if ( chr == "b" ) {
+        to += 1;
+    } else if ( chr == "c" ) {
+        to += 2;
+    } else if ( chr == "d" ) {
+        to += 3;
+    } else if ( chr == "e" ) {
+        to += 4;
+    } else if ( chr == "f" ) {
+        to += 5;
+    } else if ( chr == "g" ) {
+        to += 6;
+    } else if ( chr == "h" ) {
+        to += 7;
+    }
+
+    chr = mstring.substr(1,1);
+    if ( chr == "2" ) {
+        from += 1*8;
+    } else if ( chr == "3" ) {
+        from += 2*8;
+    } else if ( chr == "4" ) {
+        from += 3*8;
+    } else if ( chr == "5" ) {
+        from += 4*8;
+    } else if ( chr == "6" ) {
+        from += 5*8;
+    } else if ( chr == "7" ) {
+        from += 6*8;
+    } else if ( chr == "8" ) {
+        from += 7*8;
+    }
+    chr = mstring.substr(3,1);
+    if ( chr == "2" ) {
+        to += 1*8;
+    } else if ( chr == "3" ) {
+        to += 2*8;
+    } else if ( chr == "4" ) {
+        to += 3*8;
+    } else if ( chr == "5" ) {
+        to += 4*8;
+    } else if ( chr == "6" ) {
+        to += 5*8;
+    } else if ( chr == "7" ) {
+        to += 6*8;
+    } else if ( chr == "8" ) {
+        to += 7*8;
+    }
+
+    BBOARD fromBB = BBoard::fromIdx(from);
+
+    _Piece piece;
+    Color stm = getSideToMove();
+    for ( int p = Pawn; p <= King; p++ ) {
+        if ( bbPieces[2*(1+p) + stm] & fromBB ) {
+            piece = static_cast<_Piece>(p);
+            break;
+        }
+    };
+
+    if ( piece == Pawn ) {
+        int tr = to/8;
+        if ( tr == 0 || tr == 7 ) {
+            _Piece pp;
+            chr = mstring.substr(4,1);
+            if ( chr == "q" ) {
+                pp = Queen;
+            } else if ( chr == "r" ) {
+                pp = Rook;
+            } else if ( chr == "b" ) {
+                pp = Bishop;
+            } else if ( chr == "n" ) {
+                pp = Knight;
+            }
+
+            Move m(from, to, pp, static_cast<bool>(bbPieces[!stm] & BBoard::fromIdx(to)));
+            return m;
+        }
+
+        // Check for double pawn push
+        int fr = from/8;
+        if ( tr == fr + 2 || tr == fr - 2 ) {
+            Move m(from, to, Move::DoublePawnPush);
+            return m;
+        }
+        // Check for EP
+        int tf = to%8;
+        int ff = from%8;
+        if ( tf != ff && !(bbPieces[!stm] & BBoard::fromIdx(to)) ) {
+            Move m(from, to, Move::EnPassant);
+            return m;
+        }
+    }
+
+    // Check castle
+    if ( piece == King ) {
+        if ( to == from + 2 ) {
+            Move m(from, to, Move::CastleKingside);
+            return m;
+        } else if ( to == from - 2) {
+            Move m(from, to, Move::CastleQueenside);
+            return m;
+        }
+    }
+
+    if ( bbPieces[!stm] & BBoard::fromIdx(to) ) {
+        Move m(from, to, Move::Capture);
+        return m;
+    } else {
+        Move m(from, to, Move::Quiet);
+        return m;
+    }
+}

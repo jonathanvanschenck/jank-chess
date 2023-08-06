@@ -111,6 +111,7 @@ class Board {
         int eval();
         int quiesce();
 
+        Move parseUCIMove(std::string);
         std::vector<Move> getPsudoLegalMoves();
         bool inCheck();
         bool leftInCheck();

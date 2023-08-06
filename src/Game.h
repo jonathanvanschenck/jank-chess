@@ -21,10 +21,14 @@ class Game {
             , tt(nominal_size)
             {};
 
-        Board getBoard() { return board; }
+        Board* getBoardPtr() { return &board; }
 
         void reset();
         void loadFen(std::string);
+        void makeUCIMove(std::string);
+
+        Move searchFor(int);
+        Move getFirstMove();
 
         int alphaBeta(int);
         int alphaBeta(int, int, int);

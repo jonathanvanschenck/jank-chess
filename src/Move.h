@@ -47,6 +47,7 @@ class Move {
             EnPassant,
             Promotion
         };
+        Move() { movebits = 0; }
         Move(uint16_t _movebits) { movebits = _movebits; }
         // Move(int from, int to, int flags) { movebits = (from & 0x3F) | ((to & 0x3F) << 6) | ((flags & 15) << 12); }
         Move(int from, int to) {
@@ -82,6 +83,7 @@ class Move {
         BBOARD fromBB() { return BBoard::fromIdx(movebits & 0x3F); }
         BBOARD toBB() { return BBoard::fromIdx((movebits >> 6) & 0x3F); }
 
+        bool isNull() { return movebits == 0; }
         bool isQuiet() { return (movebits >> 12) == 0; }
         bool isDoublePawnPush() { return (movebits >> 12) == 1; }
         bool isCastle() { return ((movebits >> 12) == 2) || ((movebits >> 12) == 3); }
@@ -91,7 +93,7 @@ class Move {
         CastleDirection castleDirection() { return static_cast<CastleDirection>(( (movebits >> 12) & 3 ) - 2); }
         Piece promotionPiece() { return static_cast<Piece>(((movebits >> 12) & 3) + 1); }
 
-        std::string toString();
+        std::string toUCI();
 };
 
 #endif

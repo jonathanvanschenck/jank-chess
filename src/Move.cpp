@@ -4,8 +4,8 @@
 
 const std::string file[8] = {"a", "b", "c", "d", "e", "f", "g", "h"};
 const std::string rank[8] = {"1", "2", "3", "4", "5", "6", "7", "8"};
-const std::string piece[8] = {"P", "N", "B", "R", "Q", "K"};
-std::string Move::toString() {
+const std::string piece[8] = {"p", "n", "b", "r", "q", "k"};
+std::string Move::toUCI() {
     int idx;
     std::string m = "";
 
