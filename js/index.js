@@ -3,7 +3,7 @@ const { Logger } = require("yalls");
 
 const { Engine } = require("./lib/Engine.js");
 const { API } = require("./lib/API.js");
-const { GameStream } = require("./lib/Game.js");
+const { GameManager } = require("./lib/Game.js");
 
 const env = require("./env.js");
 
@@ -18,23 +18,12 @@ const engine = new Engine(env.engine, log);
     await engine.start();
 
     const api = new API(env.api);
-    const gs = new GameStream(api, log);
-
-    // TODO : this will super break if two games happen at the same time....
-    gs.on("game", (g) => {
-        engine.setFEN(g.fen, g.moves);
-        g.on("move", (move) => {
-            engine.move(move);
-        });
-        g.on("awaiting_move", () => {
-            engine.go().then(move => g.move(move));
-        });
-    });
+    const gm = new GameManager(api, engine, log);
 
     const kill = (sig) => {
         return Promise.all([
             engine.stop(sig),
-            gs.stop(),
+            gm.stop(),
         ]).then(() => {
             log.info("All processes stopped, exiting now.")
             process.exit(0)
@@ -59,5 +48,5 @@ const engine = new Engine(env.engine, log);
     });
 
 
-    await gs.start();
+    await gm.start();
 }()

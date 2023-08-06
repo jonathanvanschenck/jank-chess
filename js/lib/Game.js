@@ -17,13 +17,15 @@ class Game extends EventEmitter {
         this.board = new Chess(json.fen);
         this.my_color = json.color[0].toLowerCase();
         this.game_speed = json.perf;
+        this.opponent = json.opponent.username;
 
 
-        // TODO : add board representation?
-
-        this.log = log?.create_child(this.id) ?? Logger.noop();
+        this.log = log?.create_child("G."+this.id) ?? Logger.noop();
     }
 
+    get ply() {
+        return 2*(this.board.moveNumber() - 1) + (this.board.turn() == "b" ? 1 : 0);
+    }
     get fen() {
         return this.board.fen();
     }
@@ -35,7 +37,6 @@ class Game extends EventEmitter {
     }
 
     static from_game_start_json(json, api, log) {
-        // TODO
         // {
         //   "type": "gameStart",
         //   "game": {
@@ -113,8 +114,7 @@ class Game extends EventEmitter {
     }
 
     parse_gameFull(json) {
-        // TODO
-        if ( this.is_my_turn ) this.emit("awaiting_move");
+        // if ( this.is_my_turn ) this.emit("awaiting_move");
     }
     parse_gameState(json) {
         if ( json.status != "started" ) {
@@ -143,20 +143,24 @@ class Game extends EventEmitter {
         // }
         const moves = this.moves.join(" ");
         if ( moves == json.moves ) return; // No change
-        const jmoves = json.moves.split(" ");
-        this.board.move(jmoves[jmoves.length - 1]);
-        this.emit("move", jmoves[jmoves.length - 1], this.board.history.length);
-        if ( this.is_my_turn ) this.emit("awaiting_move");
+
+        let i = 0;
+        for ( const move of json.moves.split(" ").slice(this.ply) ) {
+            i += 1;
+            this.board.move(move);
+            this.log.info("Move played: "+this.board.moveNumber()+". "+(this.board.turn()=="b"?"... ":"")+move);
+            this.emit("move", move, this.ply);
+        }
+        this.log.debug("Now in position: "+this.board.fen());
+        // if ( this.is_my_turn ) this.emit("awaiting_move");
     }
 
     parse_message(json) {
         switch(json.type) {
             case "gameFull":
-                // TODO
                 this.parse_gameFull(json.game);
                 break;
             case "gameState":
-                // TODO
                 this.parse_gameState(json);
                 break;
             case "chatLine":
@@ -183,7 +187,7 @@ class GameStream extends EventEmitter {
     constructor(api, log) {
         super();
         this.api = api;
-        this.log = log?.create_child("GameStream") ?? Logger.noop();
+        this.log = log?.create_child("S") ?? Logger.noop();
 
         this.games = new Map();
     }
@@ -218,7 +222,7 @@ class GameStream extends EventEmitter {
     }
 
     ingest_game(game) {
-        this.log.debug(`Starting new game: ${game.id}`);
+        this.log.info(`Starting new game against ${game.opponent}: ${game.id}`);
         game.start().then(() => {
             this.games.set(game.id, game); // hold a reference
             game.once("stopped", () => this.games.delete(game.id));
@@ -227,6 +231,65 @@ class GameStream extends EventEmitter {
     }
 }
 
+class GameManager extends EventEmitter {
+    constructor(api, engine, log) {
+        super();
+
+        this.api = api;
+        this.engine = engine;
+        this.log = log?.create_child("GM") ?? Logger.noop();
+
+        this.stream = new GameStream(this.api, this.log);
+
+        this.games = [];
+    }
+
+    get active_game() {
+        return this.games[0];
+    }
+
+    async activate_game() {
+        const g = this.active_game;
+        if ( !g ) return;
+
+        this.engine.setFEN(g.fen, this.activate_game.moves);
+        g.on("move", (move) => {
+            this.engine.move(move);
+            if ( g.is_my_turn ) this.engine.go().then(move => g.move(move));
+        });
+        if ( g.is_my_turn ) this.engine.go().then(move => g.move(move));
+    }
+
+    async start() {
+        this.stream.on("game", (g) => {
+            this.log.info(`Queuing Game ${g.id}`);
+            this.games.push(g);
+
+            // Activate if this game is first in queue
+            if ( this.active_game?.id == g.id ) this.activate_game();
+
+            // Attach clean up
+            g.on("stopped", () => {
+                this.log.info(`Game ${g.id} ended, removing from queue`);
+                const idx = this.games.findIndex(gg => gg.id == g.id);
+                if ( idx < 0 ) return; // already gone??
+                this.games.splice(idx,1);
+
+                // If the "stopped" game is the active one, activate a new game
+                if ( idx == 0 ) this.activate_game();
+            });
+        });
+
+        await this.stream.start();
+    }
+
+    async stop() {
+        await this.stream.stop();
+    }
+}
+
 module.exports = {
     GameStream,
+    Game,
+    GameManager,
 };

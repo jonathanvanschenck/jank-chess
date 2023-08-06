@@ -42,7 +42,8 @@ int main ()
     // Move m = game.getBoardPtr()->parseUCIMove("a2a4");
     // game.makeUCIMove("d2c4");
     // cout << game.getBoardPtr()->fen() << "\n";
-    game.loadFen("rnbqkbnr/3ppppp/3N4/3p4/1p3B2/1P6/PP2PPPP/R3KBNR b KQkq - 1 10");
+    // game.loadFen("rnbqkbnr/3ppppp/3N4/3p4/1p3B2/1P6/PP2PPPP/R3KBNR b KQkq - 1 10");
+    game.loadFen("r3k2r/ppp2ppp/2n5/3p1b2/PPn1P3/1K1p1PbP/8/1qBQ1BNR w kq - 0 16");
     Move m = game.getFirstMove();
     cout << m.toUCI() << "\n";
     // cout << m.isDoublePawnPush() << "\n";

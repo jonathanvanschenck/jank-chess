@@ -120,7 +120,8 @@ std::string parse_position(std::string in, Game* gptr) {
     while ( instream >> arg ) gptr->makeUCIMove(arg);
 
     // TODO : remove me, for debugging
-    return gptr->getBoardPtr()->stringify();
+    std::cout << "In position:\n" << gptr->getBoardPtr()->stringify();
+    return "";
 }
 
 std::string parse_make(std::string in, Game* gptr) {
@@ -132,7 +133,8 @@ std::string parse_make(std::string in, Game* gptr) {
     gptr->makeUCIMove(arg);
 
     // TODO : remove me, for debugging
-    return gptr->getBoardPtr()->stringify();
+    std::cout << "In position:\n" << gptr->getBoardPtr()->stringify();
+    return "";
 }
 
 const std::regex ISREADY_REGEX("isready");
