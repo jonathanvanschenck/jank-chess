@@ -48,6 +48,7 @@ class Move {
             Promotion
         };
         Move() { movebits = 0; }
+        Move(const Move&) = default; // Suppress error, see assignment operator below
         Move(uint16_t _movebits) { movebits = _movebits; }
         // Move(int from, int to, int flags) { movebits = (from & 0x3F) | ((to & 0x3F) << 6) | ((flags & 15) << 12); }
         Move(int from, int to) {

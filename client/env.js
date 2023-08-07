@@ -30,7 +30,7 @@ module.exports = {
     },
     engine: {
         socket: env.ENGINE_SOCKET || "/tmp/chess",
-        binary: env.ENGINE_BINARY || "../src/server.bin",
+        binary: env.ENGINE_BINARY || "../engine/build/engine1FirstMove",
         memory_size_bytes: parseInt((env.ENGINE_MEMEORY_SIZE_MB || 1)*1e6),
     },
 };

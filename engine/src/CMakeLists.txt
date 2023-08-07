@@ -1,0 +1,14 @@
+
+list(APPEND JC_SOURCES
+    ${CMAKE_CURRENT_LIST_DIR}/Attack.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/Board.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/FindMagic.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/Magic.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/Move.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/Zobrist.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/BBoard.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/Game.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/Transposition.cpp)
+
+set(JC_SOURCES ${JC_SOURCES} PARENT_SCOPE)
+
