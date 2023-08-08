@@ -59,22 +59,23 @@ class DepthResult {
 };
 
 vector<Move> ml;
-DepthResult perft(int depth, Move m) {
-    ml.push_back(m);
+DepthResult perft(int depth, Move* mptr) {
+    ml.push_back(*mptr);
     DepthResult dr;
     if ( depth == 0 ) {
         dr.nodes += 1ULL;
-        if ( m.isCapture() ) dr.captures += 1ULL;
-        if ( m.isCastle() ) dr.castles += 1ULL;
-        if ( m.isEnPassant() ) dr.ep += 1ULL;
-        if ( m.isPromotion() ) dr.promotions += 1ULL;
+        if ( mptr->isCapture() ) dr.captures += 1ULL;
+        if ( mptr->isCastle() ) dr.castles += 1ULL;
+        if ( mptr->isEnPassant() ) dr.ep += 1ULL;
+        if ( mptr->isPromotion() ) dr.promotions += 1ULL;
         if ( board.inCheck() ) {
             dr.checks += 1ULL;
             bool mated = 1ULL;
-            for ( Move m : board.getPsudoLegalMoves() ) {
-                board.make(m);
+            board.generatePsudoLegalMoves();
+            for ( Move* mptr2 = board.moveListBegin(); mptr2 < board.moveListEnd(); mptr2++ ) {
+                board.make(mptr2);
                 if ( !board.leftInCheck() ) mated = 0;
-                board.unmake(m);
+                board.unmake(mptr2);
             }
             if ( mated ) dr.mates += 1ULL;
         }
@@ -82,20 +83,23 @@ DepthResult perft(int depth, Move m) {
         ml.pop_back();
         return dr;
     }
-    for ( Move m : board.getPsudoLegalMoves() ) {
-        board.make(m);
-        if ( !board.leftInCheck() ) dr += perft(depth-1, m);
-        board.unmake(m);
+    board.generatePsudoLegalMoves();
+    for ( Move* mptr2 = board.moveListBegin(); mptr2 < board.moveListEnd(); mptr2++ ) {
+        board.make(mptr2);
+        if ( !board.leftInCheck() ) dr += perft(depth-1, mptr2);
+        board.unmake(mptr2);
+        // std::cout << "=========HERE\n";
     }
     ml.pop_back();
     return dr;
 }
 DepthResult perft(int depth) {
     DepthResult dr;
-    for ( Move m : board.getPsudoLegalMoves() ) {
-        board.make(m);
-        if ( !board.leftInCheck() ) dr += perft(depth-1, m);
-        board.unmake(m);
+    board.generatePsudoLegalMoves();
+    for ( Move* mptr = board.moveListBegin(); mptr < board.moveListEnd(); mptr++ ) {
+        board.make(mptr);
+        if ( !board.leftInCheck() ) dr += perft(depth-1, mptr);
+        board.unmake(mptr);
     }
     return dr;
 }

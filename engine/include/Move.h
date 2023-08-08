@@ -97,4 +97,31 @@ class Move {
         std::string toUCI();
 };
 
+constexpr unsigned int MAX_PLY = 20;
+constexpr unsigned int MAX_MOVES = 218;
+
+class MoveStack {
+    private:
+        Move moves[MAX_PLY*MAX_MOVES];
+        unsigned int ply;
+        unsigned int current_move[MAX_PLY];
+        unsigned int last_move[MAX_PLY];
+    public:
+        MoveStack() { ply = 0; }
+
+        void reset();
+        void inc_ply();
+        void dec_ply();
+
+        void push_back();
+        void push_back(uint16_t movebits);
+        void push_back(int from, int to);
+        void push_back(int from, int to, Move::Descriptor description);
+        void push_back(int from, int to, Piece piece);
+        void push_back(int from, int to, Piece piece, bool capture);
+
+        Move* begin();
+        Move* end();
+};
+
 #endif

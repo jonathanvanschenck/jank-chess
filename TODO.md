@@ -7,8 +7,8 @@
   - [x] Adopt cmake?
       - [ ] Fix find_magic???
       - [x] Fix perft to actually run through all positions
-  - [ ] Profile code: should moves be passed by reference or value?
-  - [ ] Change moves from a `std::vector<Move>` to a preallocated stack (does that allow `alphaBeta(...)` beyond depth 3?)
+  - [x] Profile code: should moves be passed by reference or value?
+  - [x] Change moves from a `std::vector<Move>` to a preallocated stack (does that allow `alphaBeta(...)` beyond depth 3?)
   - [ ] Create a search function that actually tracks the `bestmove`
   - [ ] Track the PV in the search
   - [ ] Use TT to speed up in the search

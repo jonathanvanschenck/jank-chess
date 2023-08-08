@@ -42,6 +42,7 @@ class Board {
         int halfmoves;
         int castling_rights;
         std::vector<MoveCache> cache;
+        MoveStack move_stack;
         BBOARD ep;
         BBOARD bbPieces[14];
         BBOARD bbEmpty;
@@ -102,17 +103,19 @@ class Board {
 
         BBOARD calculateZobristHash();
 
-        _Piece _apply_move(Move, Color, _Piece);
-        void _apply_move(Move, Color, _Piece, _Piece);
-        void make(Move);
-        void unmake(Move);
+        _Piece _apply_move(Move*, Color, _Piece);
+        void _apply_move(Move*, Color, _Piece, _Piece);
+        void make(Move*);
+        void unmake(Move*);
 
         int material(Color);
         int eval();
         int quiesce();
 
         Move parseUCIMove(std::string);
-        std::vector<Move> getPsudoLegalMoves();
+        void generatePsudoLegalMoves();
+        Move* moveListBegin() { return move_stack.begin(); }
+        Move* moveListEnd() { return move_stack.end(); }
         bool inCheck();
         bool leftInCheck();
         bool inCheck(Color);

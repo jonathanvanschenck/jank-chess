@@ -450,11 +450,11 @@ std::string Board::fen() {
     return output;
 }
 
-
-std::vector<Move> Board::getPsudoLegalMoves() {
-    std::vector<Move> moves;
+void Board::generatePsudoLegalMoves() {
     BBOARD bb, to;
     int fromIdx, toIdx;
+
+    move_stack.reset();
 
     Color stm = getSideToMove();
     Color ostm = static_cast<Color>((stm+1)%2);
@@ -473,12 +473,12 @@ std::vector<Move> Board::getPsudoLegalMoves() {
             toIdx = BBoard::LS1Idx(to);
             if ( ( toIdx / 8 ) == (7 - 7*stm) ) {
                 // Promotion
-                moves.emplace_back(fromIdx, toIdx, Queen, 1);
-                moves.emplace_back(fromIdx, toIdx, Knight, 1);
-                moves.emplace_back(fromIdx, toIdx, Rook, 1);  // TODO : remove in real engine
-                moves.emplace_back(fromIdx, toIdx, Bishop, 1);// TODO : remove in real engine
+                move_stack.push_back(fromIdx, toIdx, Queen, 1);
+                move_stack.push_back(fromIdx, toIdx, Knight, 1);
+                move_stack.push_back(fromIdx, toIdx, Rook, 1);  // TODO : remove in real engine
+                move_stack.push_back(fromIdx, toIdx, Bishop, 1);// TODO : remove in real engine
             } else {
-                moves.emplace_back(fromIdx, toIdx, (opp_occ & to) ? Move::Capture : Move::EnPassant);
+                move_stack.push_back(fromIdx, toIdx, (opp_occ & to) ? Move::Capture : Move::EnPassant);
             }
         }
         // Single Pushes
@@ -487,19 +487,19 @@ std::vector<Move> Board::getPsudoLegalMoves() {
             toIdx = BBoard::LS1Idx(BBoard::popLS1B(&tos));
             if ( ( toIdx / 8 ) == (7 - 7*stm) ) {
                 // Promotion
-                moves.emplace_back(fromIdx, toIdx, Queen, 0); // No need to include rook/bishop
-                moves.emplace_back(fromIdx, toIdx, Knight, 0);
-                moves.emplace_back(fromIdx, toIdx, Rook, 0);  // TODO : remove in real engine
-                moves.emplace_back(fromIdx, toIdx, Bishop, 0);// TODO : remove in real engine
+                move_stack.push_back(fromIdx, toIdx, Queen, 0); // No need to include rook/bishop
+                move_stack.push_back(fromIdx, toIdx, Knight, 0);
+                move_stack.push_back(fromIdx, toIdx, Rook, 0);  // TODO : remove in real engine
+                move_stack.push_back(fromIdx, toIdx, Bishop, 0);// TODO : remove in real engine
             } else {
-                moves.emplace_back(fromIdx, toIdx, Move::Quiet);
+                move_stack.push_back(fromIdx, toIdx, Move::Quiet);
             }
         }
         // Double Pushes
         tos = Attack::getPawnDoublePush(fromIdx, stm, bbEmpty);
         while ( tos ) {
             toIdx = BBoard::LS1Idx(BBoard::popLS1B(&tos));
-            moves.emplace_back(fromIdx, toIdx, Move::DoublePawnPush);
+            move_stack.push_back(fromIdx, toIdx, Move::DoublePawnPush);
         }
     }
 
@@ -511,7 +511,7 @@ std::vector<Move> Board::getPsudoLegalMoves() {
         while ( tos ) {
             to = BBoard::popLS1B(&tos);
             toIdx = BBoard::LS1Idx(to);
-            if ( !(self_occ & to ) ) moves.emplace_back(fromIdx, toIdx, (opp_occ & to) ? Move::Capture : Move::Quiet);
+            if ( !(self_occ & to ) ) move_stack.push_back(fromIdx, toIdx, (opp_occ & to) ? Move::Capture : Move::Quiet);
         }
     }
 
@@ -523,7 +523,7 @@ std::vector<Move> Board::getPsudoLegalMoves() {
         while ( tos ) {
             to = BBoard::popLS1B(&tos);
             toIdx = BBoard::LS1Idx(to);
-            if ( !(self_occ & to ) ) moves.emplace_back(fromIdx, toIdx, (opp_occ & to) ? Move::Capture : Move::Quiet);
+            if ( !(self_occ & to ) ) move_stack.push_back(fromIdx, toIdx, (opp_occ & to) ? Move::Capture : Move::Quiet);
         }
     }
 
@@ -535,7 +535,7 @@ std::vector<Move> Board::getPsudoLegalMoves() {
         while ( tos ) {
             to = BBoard::popLS1B(&tos);
             toIdx = BBoard::LS1Idx(to);
-            if ( !(self_occ & to ) ) moves.emplace_back(fromIdx, toIdx, (opp_occ & to) ? Move::Capture : Move::Quiet);
+            if ( !(self_occ & to ) ) move_stack.push_back(fromIdx, toIdx, (opp_occ & to) ? Move::Capture : Move::Quiet);
         }
     }
 
@@ -547,7 +547,7 @@ std::vector<Move> Board::getPsudoLegalMoves() {
         while ( tos ) {
             to = BBoard::popLS1B(&tos);
             toIdx = BBoard::LS1Idx(to);
-            if ( !(self_occ & to ) ) moves.emplace_back(fromIdx, toIdx, (opp_occ & to) ? Move::Capture : Move::Quiet);
+            if ( !(self_occ & to ) ) move_stack.push_back(fromIdx, toIdx, (opp_occ & to) ? Move::Capture : Move::Quiet);
         }
     }
 
@@ -558,14 +558,14 @@ std::vector<Move> Board::getPsudoLegalMoves() {
     while ( tos ) {
         to = BBoard::popLS1B(&tos);
         toIdx = BBoard::LS1Idx(to);
-        if ( !(self_occ & to ) ) moves.emplace_back(fromIdx, toIdx, (opp_occ & to) ? Move::Capture : Move::Quiet);
+        if ( !(self_occ & to ) ) move_stack.push_back(fromIdx, toIdx, (opp_occ & to) ? Move::Capture : Move::Quiet);
     }
 
     // TODO : yucky, can we please make this better :(
 
     // Castling
     int castling_half_rights = (castling_rights >> (2 - 2*stm)) & 3;
-    if ( !castling_half_rights ) return moves;
+    if ( !castling_half_rights ) return;
     // See if King is in Check:
     if (
             (Attack::getPawnAttacks(fromIdx, stm, opp_occ) & bbPieces[Board::pWhitePawn + ostm]) ||
@@ -574,7 +574,7 @@ std::vector<Move> Board::getPsudoLegalMoves() {
             (Attack::getRookAttacks(fromIdx, bbOccupied) & bbPieces[Board::pWhiteRook + ostm]) ||
             (Attack::getQueenAttacks(fromIdx, bbOccupied) & bbPieces[Board::pWhiteQueen + ostm]) ||
             (Attack::getKingAttacks(fromIdx) & bbPieces[Board::pWhiteKing + ostm])
-    ) return moves;
+    ) return;
 
     // Kingside
     if (
@@ -598,7 +598,7 @@ std::vector<Move> Board::getPsudoLegalMoves() {
                 (Attack::getKingAttacks(fromIdx+2) & bbPieces[Board::pWhiteKing + ostm])
             ) // g1/g8 can't be attacked
     ) {
-        moves.emplace_back(fromIdx, fromIdx + 2, Move::CastleKingside);
+        move_stack.push_back(fromIdx, fromIdx + 2, Move::CastleKingside);
     }
     // Queenside
     if (
@@ -623,10 +623,8 @@ std::vector<Move> Board::getPsudoLegalMoves() {
                 (Attack::getKingAttacks(fromIdx-2) & bbPieces[Board::pWhiteKing + ostm])
             ) // c1/c8 can't be attacked
     ) {
-        moves.emplace_back(fromIdx, fromIdx - 2, Move::CastleQueenside);
+        move_stack.push_back(fromIdx, fromIdx - 2, Move::CastleQueenside);
     }
-
-    return moves;
 };
 
 bool Board::inCheck() {
@@ -656,24 +654,24 @@ bool Board::inCheck(Color side) {
 // };
 
 
-void Board::_apply_move(Move m, Color side, _Piece p, _Piece cp) {
-    Color oside = static_cast<Color>((side+1)%2);
-    BBOARD to = m.toBB();
-    BBOARD from = m.fromBB();
+void Board::_apply_move(Move* mptr, Color side, _Piece p, _Piece cp) {
+    Color oside = static_cast<Color>(!side);
+    BBOARD to = mptr->toBB();
+    BBOARD from = mptr->fromBB();
 
-    if ( m.isCastle() ) {
-        Move::CastleDirection dir = m.castleDirection();
+    if ( mptr->isCastle() ) {
+        Move::CastleDirection dir = mptr->castleDirection();
         BBOARD rookdiff, rookhashdiff;
         switch (dir) {
             case Move::Kingside:
                 rookdiff = (to >> 1) ^ (to << 1);
-                rookhashdiff =  Zobrist::getPieceHash(Rook, side, m.toIdx()+1);
-                rookhashdiff ^= Zobrist::getPieceHash(Rook, side, m.toIdx()-1);
+                rookhashdiff =  Zobrist::getPieceHash(Rook, side, mptr->toIdx()+1);
+                rookhashdiff ^= Zobrist::getPieceHash(Rook, side, mptr->toIdx()-1);
                 break;
             case Move::Queenside:
                 rookdiff = (to >> 2) ^ (to << 1);
-                rookhashdiff =  Zobrist::getPieceHash(Rook, side, m.toIdx()+1);
-                rookhashdiff ^= Zobrist::getPieceHash(Rook, side, m.toIdx()-2);
+                rookhashdiff =  Zobrist::getPieceHash(Rook, side, mptr->toIdx()+1);
+                rookhashdiff ^= Zobrist::getPieceHash(Rook, side, mptr->toIdx()-2);
                 break;
         };
         bbPieces[Board::pWhiteRook + side] ^= rookdiff;
@@ -681,16 +679,16 @@ void Board::_apply_move(Move m, Color side, _Piece p, _Piece cp) {
         bbOccupied ^= rookdiff;
         bbEmpty ^= rookdiff;
         bbPieces[side] ^= rookdiff;
-    } else if ( m.isEnPassant() ) {
+    } else if ( mptr->isEnPassant() ) {
         BBOARD pawn, pawnhash;
         switch (side) {
             case white:
                 pawn = to >> 8;
-                pawnhash = Zobrist::getPieceHash(Pawn, oside, m.toIdx()-8);
+                pawnhash = Zobrist::getPieceHash(Pawn, oside, mptr->toIdx()-8);
                 break;
             case black:
                 pawn = to << 8;
-                pawnhash = Zobrist::getPieceHash(Pawn, oside, m.toIdx()+8);
+                pawnhash = Zobrist::getPieceHash(Pawn, oside, mptr->toIdx()+8);
                 break;
         }
         bbPieces[Board::pWhitePawn + oside] ^= pawn;
@@ -698,9 +696,9 @@ void Board::_apply_move(Move m, Color side, _Piece p, _Piece cp) {
         bbOccupied ^= pawn;
         bbEmpty ^= pawn;
         bbPieces[oside] ^= pawn;
-    } else if ( m.isCapture() ) {
+    } else if ( mptr->isCapture() ) {
         bbPieces[2*(1+cp) + oside] ^= to;
-        zHash ^= Zobrist::getPieceHash(cp, oside, m.toIdx());
+        zHash ^= Zobrist::getPieceHash(cp, oside, mptr->toIdx());
         bbPieces[oside] ^= to;
         bbOccupied ^= to;
         bbEmpty ^= to;
@@ -710,25 +708,25 @@ void Board::_apply_move(Move m, Color side, _Piece p, _Piece cp) {
     bbOccupied ^= movediff;
     bbEmpty ^= movediff;
     bbPieces[side] ^= movediff;
-    if ( m.isPromotion() ) {
+    if ( mptr->isPromotion() ) {
         bbPieces[2*(1+p) + side] ^= from;
-        zHash ^= Zobrist::getPieceHash(p, side, m.fromIdx());
-        bbPieces[2*(1+m.promotionPiece()) + side] ^= to;
-        zHash ^= Zobrist::getPieceHash(m.promotionPiece(), side, m.toIdx());
+        zHash ^= Zobrist::getPieceHash(p, side, mptr->fromIdx());
+        bbPieces[2*(1+mptr->promotionPiece()) + side] ^= to;
+        zHash ^= Zobrist::getPieceHash(mptr->promotionPiece(), side, mptr->toIdx());
     } else {
         bbPieces[2*(1+p) + side] ^= movediff;
-        zHash ^= Zobrist::getPieceHash(p, side, m.toIdx());
-        zHash ^= Zobrist::getPieceHash(p, side, m.fromIdx());
+        zHash ^= Zobrist::getPieceHash(p, side, mptr->toIdx());
+        zHash ^= Zobrist::getPieceHash(p, side, mptr->fromIdx());
     }
 }
 
-_Piece Board::_apply_move(Move m, Color side, _Piece p) {
-    Color oside = static_cast<Color>((side+1)%2);
+_Piece Board::_apply_move(Move* mptr, Color side, _Piece p) {
+    Color oside = static_cast<Color>(!side);
     _Piece cp;
-    if ( m.isEnPassant() ) {
+    if ( mptr->isEnPassant() ) {
         cp = Pawn;
-    } else if ( m.isCapture() ) {
-        BBOARD to = m.toBB();
+    } else if ( mptr->isCapture() ) {
+        BBOARD to = mptr->toBB();
         for ( int _p = Pawn; _p <= King; _p ++ ) {
             if ( bbPieces[2*(1+_p) + oside] & to ) {
                 cp = static_cast<_Piece>(_p);
@@ -736,15 +734,16 @@ _Piece Board::_apply_move(Move m, Color side, _Piece p) {
             }
         }
     }
-    _apply_move(m, side, p, cp);
+    _apply_move(mptr, side, p, cp);
     return cp;
 }
-void Board::make(Move m) {
+void Board::make(Move* mptr) {
+    move_stack.inc_ply();
 
     Color side = getSideToMove();
-    Color oside = static_cast<Color>((side+1)%2);
+    Color oside = static_cast<Color>(!side);
     _Piece p;
-    BBOARD from = m.fromBB();
+    BBOARD from = mptr->fromBB();
     for ( int _p = Pawn; _p <= King; _p ++ ) {
         if ( bbPieces[2*(1+_p) + side] & from ) {
             p = static_cast<_Piece>(_p);
@@ -752,7 +751,7 @@ void Board::make(Move m) {
         }
     }
 
-    _Piece cp = _apply_move(m, side, p);
+    _Piece cp = _apply_move(mptr, side, p);
 
     // Push info onto the cache
     cache.emplace_back(halfmoves, castling_rights, ep, p, cp);
@@ -765,8 +764,8 @@ void Board::make(Move m) {
         zHash ^= Zobrist::getCastling(castling_rights);
     } else if ( p == Rook ) {
         // If you move your rook off it's starting sqare, you loose that rook's side
-        int f = m.fromIdx() % 8;
-        int r = m.fromIdx() / 8;
+        int f = mptr->fromIdx() % 8;
+        int r = mptr->fromIdx() / 8;
         if ( f == 7 && r == 7*side ) {
             // Erase Kingside
             int mask = (-1) ^ (1 << (2*oside + 1));
@@ -785,8 +784,8 @@ void Board::make(Move m) {
     if ( cp == Rook ) {
         // If you occupied (i.e. capture) the opponent's rook's starting square,
         // THEY loose that castling right
-        int f = m.toIdx() % 8;
-        int r = m.toIdx() / 8;
+        int f = mptr->toIdx() % 8;
+        int r = mptr->toIdx() / 8;
         if ( f == 7 && r == 7*oside ) {
             // Erase Kingside
             int mask = (-1) ^ (1 << (2*side + 1));
@@ -804,15 +803,15 @@ void Board::make(Move m) {
 
     // Update EP
     if ( ep ) zHash ^= Zobrist::getEnPassant(BBoard::LS1Idx(ep));
-    if ( m.isDoublePawnPush() ) {
+    if ( mptr->isDoublePawnPush() ) {
         switch (side) {
             case white:
-                ep = m.toBB() >> 8;
-                zHash ^= Zobrist::getEnPassant(m.toIdx() - 8);
+                ep = mptr->toBB() >> 8;
+                zHash ^= Zobrist::getEnPassant(mptr->toIdx() - 8);
                 break;
             case black:
-                ep = m.toBB() << 8;
-                zHash ^= Zobrist::getEnPassant(m.toIdx() + 8);
+                ep = mptr->toBB() << 8;
+                zHash ^= Zobrist::getEnPassant(mptr->toIdx() + 8);
                 break;
         }
     } else {
@@ -820,7 +819,7 @@ void Board::make(Move m) {
     }
 
     // Update halfmove clock
-    if ( m.isCapture() || p == Pawn || cache.back().getCastlingRights() != castling_rights ) {
+    if ( mptr->isCapture() || p == Pawn || cache.back().getCastlingRights() != castling_rights ) {
         halfmoves = 0;
     } else {
         halfmoves += 1;
@@ -830,11 +829,13 @@ void Board::make(Move m) {
     ply += 1;
     zHash ^= Zobrist::getBlackToMove();
 };
-void Board::unmake(Move m) {
-    Color side = static_cast<Color>((getSideToMove()+1)%2);
+void Board::unmake(Move* mptr) {
+    move_stack.dec_ply();
+
+    Color side = static_cast<Color>(!getSideToMove());
     MoveCache mc = cache.back();
 
-    _apply_move(m, side, mc.getPiece(), mc.getCapturedPiece());
+    _apply_move(mptr, side, mc.getPiece(), mc.getCapturedPiece());
 
     // Update bonus fields
     halfmoves = mc.getHalfMoves();
