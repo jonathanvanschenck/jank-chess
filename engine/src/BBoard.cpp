@@ -51,7 +51,17 @@ namespace BBoard {
     }
     int LS1Idx(BBOARD board) {
         // Many thanks to https://stackoverflow.com/a/21439175
-        return __builtin_ffsll( board ) - 1;
+        #ifdef __GNUC__  
+            return __builtin_ffsll( board ) - 1; // GCC
+        #endif
+        #ifdef _MSC_VER
+            unsigned long index;
+            if ( _BitScanForward64(&index, board) ) {
+                return static_cast<int>(index); // Visual studio
+            } else {
+                return -1;
+            }
+        #endif
     }
     bool isEmpty(BBOARD board) {
         return board == 0;
