@@ -31,18 +31,31 @@ int main ()
     // Board board;
     // board.loadFen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -");
     // board.loadFen("rnb1kbnr/pp1ppppp/2p5/8/8/PP1P4/2P1PPPP/RNBQqBNR w KQkq - 0 4");
+    // board.loadFen("4B3/R7/5pkn/5ppp/8/8/8/4K3 b - - 0 1");
     // board.generatePsudoLegalMoves();
+    // int good = 0;
     // for ( Move* mptr = board.moveListBegin(); mptr < board.moveListEnd(); mptr++ ) {
-    //     std::cout << board.stringify() << " : " << mptr->toUCI() << "\n";
+    //     board.make(mptr);
+    //     if ( !board.leftInCheck() ) good++;
+    //     std::cout << mptr->toUCI() << "\n";
+    //     board.unmake(mptr);
     // }
+    // std::cout << good << "\n";
     // board.loadFen("4k3/8/8/8/8/8/5NB1/4K3 w - -");
     Game game(1e7);
     // game.loadFen("r3k2r/2ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R b Kkq -");
     // game.loadFen("rnbqkbnr/3ppppp/3p4/8/1p3B2/1P6/PP1NPPPP/R2pKBNR w KQkq - 0 9");
     // cout << game.getBoard().getZobristHash() << "\n";
     // cout << game.getBoard().calculateZobristHash() << "\n";
-    int score = game.alphaBeta(7);
-    cout << score << "\n";
+    SearchResult sr = game.search(10000);
+    cout << "Depth          : " << sr.getDepth() << "\n";
+    cout << "Searched nodes : " << sr.getNodesSearched() << "\n";
+    cout << "Searched qnodes: " << sr.getQuiescenceNodesSearched() << "\n";
+    cout << "% qnodes       : " << static_cast<float>(sr.getQuiescenceNodesSearched())/static_cast<float>(sr.getNodesSearched()) << "\n";
+    cout << "Search Time ms : " << sr.getSearchTime() << "\n";
+    cout << "kn/ms          : " << static_cast<float>(sr.getNodesSearched())*1e-3/static_cast<float>(sr.getSearchTime()) << "\n";
+    cout << "Best Move      : " << sr.getMove().toUCI() << "\n";
+    cout << "Eval           : " << sr.getEval() << "\n";
     // Move m = game.getBoardPtr()->parseUCIMove("d2c4");
     // Move m = game.getBoardPtr()->parseUCIMove("a2a4");
     // game.makeUCIMove("d2c4");

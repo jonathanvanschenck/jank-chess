@@ -52,6 +52,7 @@ class Engine extends EventEmitter {
     }
 
     async send(msg, timeout_ms=1000) {
+        console.log(msg, timeout_ms);
         const con = createConnection(this.config.socket);
 
         await new Promise((res,rej) => {
@@ -89,7 +90,7 @@ class Engine extends EventEmitter {
     }
 
     async go(time_ms=null) {
-        const move = await this.send(`go${time_ms == null ? "" : "movetime "+time_ms}`, (time_ms ?? 1000)*2);
+        const move = await this.send(`go${time_ms == null ? "" : "movetime "+time_ms}`, (time_ms ?? 1000)*3);
         return move;
     }
 

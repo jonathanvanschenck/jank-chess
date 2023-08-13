@@ -626,6 +626,102 @@ void Board::generatePsudoLegalMoves() {
         move_stack.push_back(fromIdx, fromIdx - 2, Move::CastleQueenside);
     }
 };
+void Board::generatePsudoLegalQuiescenceMoves() {
+    BBOARD bb, to;
+    int fromIdx, toIdx;
+
+    move_stack.reset();
+
+    Color stm = getSideToMove();
+    BBOARD opp_occ = bbPieces[static_cast<Color>(!stm)];
+    BBOARD opp_occ_and_ep = opp_occ | ep;
+
+    // Pawn Moves
+    bb = bbPieces[Board::pWhitePawn + stm];
+    while ( bb ) {
+        fromIdx = BBoard::LS1Idx(BBoard::popLS1B(&bb));
+        // Attacks
+        BBOARD tos = Attack::getPawnAttacks(fromIdx, stm, opp_occ_and_ep);
+        while ( tos ) {
+            to = BBoard::popLS1B(&tos);
+            toIdx = BBoard::LS1Idx(to);
+            if ( ( toIdx / 8 ) == (7 - 7*stm) ) {
+                // Promotion
+                move_stack.push_back(fromIdx, toIdx, Queen, 1);
+                move_stack.push_back(fromIdx, toIdx, Knight, 1);
+                move_stack.push_back(fromIdx, toIdx, Rook, 1);  // TODO : remove in real engine
+                move_stack.push_back(fromIdx, toIdx, Bishop, 1);// TODO : remove in real engine
+            } else {
+                move_stack.push_back(fromIdx, toIdx, (opp_occ & to) ? Move::Capture : Move::EnPassant);
+            }
+        }
+        // Quiet Promotions
+        tos = Attack::getPawnSinglePush(fromIdx, stm, bbEmpty);
+        while ( tos ) {
+            toIdx = BBoard::LS1Idx(BBoard::popLS1B(&tos));
+            if ( ( toIdx / 8 ) == (7 - 7*stm) ) {
+                // Promotion
+                move_stack.push_back(fromIdx, toIdx, Queen, 0); // No need to include rook/bishop
+                move_stack.push_back(fromIdx, toIdx, Knight, 0);
+                move_stack.push_back(fromIdx, toIdx, Rook, 0);  // TODO : remove in real engine
+                move_stack.push_back(fromIdx, toIdx, Bishop, 0);// TODO : remove in real engine
+            }
+        }
+    }
+
+    // Knight Captures
+    bb = bbPieces[Board::pWhiteKnight + stm];
+    while ( bb ) {
+        fromIdx = BBoard::LS1Idx(BBoard::popLS1B(&bb));
+        BBOARD caps = Attack::getKnightAttacks(fromIdx) & opp_occ;
+        while ( caps ) {
+            toIdx = BBoard::LS1Idx(BBoard::popLS1B(&caps));
+            move_stack.push_back(fromIdx, toIdx, Move::Capture);
+        }
+    }
+
+    // Bishop Captures
+    bb = bbPieces[Board::pWhiteBishop + stm];
+    while ( bb ) {
+        fromIdx = BBoard::LS1Idx(BBoard::popLS1B(&bb));
+        BBOARD caps = Attack::getBishopAttacks(fromIdx, bbOccupied) & opp_occ;
+        while ( caps ) {
+            toIdx = BBoard::LS1Idx(BBoard::popLS1B(&caps));
+            move_stack.push_back(fromIdx, toIdx, Move::Capture);
+        }
+    }
+
+    // Rook Captures
+    bb = bbPieces[Board::pWhiteRook + stm];
+    while ( bb ) {
+        fromIdx = BBoard::LS1Idx(BBoard::popLS1B(&bb));
+        BBOARD caps = Attack::getRookAttacks(fromIdx, bbOccupied) & opp_occ;
+        while ( caps ) {
+            toIdx = BBoard::LS1Idx(BBoard::popLS1B(&caps));
+            move_stack.push_back(fromIdx, toIdx, Move::Capture);
+        }
+    }
+
+    // Queen Captures
+    bb = bbPieces[Board::pWhiteQueen + stm];
+    while ( bb ) {
+        fromIdx = BBoard::LS1Idx(BBoard::popLS1B(&bb));
+        BBOARD caps = Attack::getQueenAttacks(fromIdx, bbOccupied) & opp_occ;
+        while ( caps ) {
+            toIdx = BBoard::LS1Idx(BBoard::popLS1B(&caps));
+            move_stack.push_back(fromIdx, toIdx, Move::Capture);
+        }
+    }
+
+    // King Captures
+    bb = bbPieces[Board::pWhiteKing + stm];
+    fromIdx = BBoard::LS1Idx(BBoard::popLS1B(&bb));
+    BBOARD caps = Attack::getKingAttacks(fromIdx) & opp_occ;
+    while ( caps ) {
+        toIdx = BBoard::LS1Idx(BBoard::popLS1B(&caps));
+        move_stack.push_back(fromIdx, toIdx, Move::Capture);
+    }
+};
 
 bool Board::inCheck() {
     return inCheck(getSideToMove());

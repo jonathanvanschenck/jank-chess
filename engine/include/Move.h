@@ -97,7 +97,7 @@ class Move {
         std::string toUCI();
 };
 
-constexpr unsigned int MAX_PLY = 20;
+constexpr unsigned int MAX_PLY = 40;
 constexpr unsigned int MAX_MOVES = 218;
 
 class MoveStack {

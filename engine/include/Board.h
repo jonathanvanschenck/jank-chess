@@ -98,7 +98,7 @@ class Board {
         BBOARD getQueens(Color color) const { return bbPieces[pWhiteQueen + color]; }
         BBOARD getWhiteKing() const { return bbPieces[pWhiteKing]; }
         BBOARD getBlackKing() const { return bbPieces[pBlackKing]; }
-        BBOARD getKings(Color color) const { return bbPieces[pWhiteKing + color]; }
+        BBOARD getKing(Color color) const { return bbPieces[pWhiteKing + color]; }
         BBOARD getZobristHash() const { return zHash; }
 
         BBOARD calculateZobristHash();
@@ -114,6 +114,7 @@ class Board {
 
         Move parseUCIMove(std::string);
         void generatePsudoLegalMoves();
+        void generatePsudoLegalQuiescenceMoves();
         Move* moveListBegin() { return move_stack.begin(); }
         Move* moveListEnd() { return move_stack.end(); }
         bool inCheck();
