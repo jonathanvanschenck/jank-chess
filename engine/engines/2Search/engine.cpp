@@ -35,14 +35,25 @@ std::string parse_go(std::string in, Game* gptr) {
 
     SearchResult sr = gptr->search(search_time);
     std::cout << "Search Results:\n";
-    std::cout << " -- Depth          : " << sr.getDepth() << "\n";
+    std::cout << " -- Depth          : " << sr.getTargetDepth() << "\n";
     std::cout << " -- Searched nodes : " << sr.getNodesSearched() << "\n";
     std::cout << " -- Searched qnodes: " << sr.getQuiescenceNodesSearched() << "\n";
     std::cout << " -- % qnodes       : " << static_cast<float>(sr.getQuiescenceNodesSearched())/static_cast<float>(sr.getNodesSearched()) << "\n";
     std::cout << " -- Search Time ms : " << sr.getSearchTime() << "\n";
     std::cout << " -- kn/ms          : " << static_cast<float>(sr.getNodesSearched())*1e-3/static_cast<float>(sr.getSearchTime()) << "\n";
-    std::cout << " -- Best Move      : " << sr.getMove().toUCI() << "\n";
-    std::cout << " -- Eval           : " << sr.getEval() << "\n";
+    std::cout << "Best Move      : " << sr.getMove().toUCI() << "\n";
+    if ( sr.foundMate() ) {
+        int mate_in = sr.getMateIn();
+        if ( mate_in > 0 ) {
+            std::cout << "Eval           : #+" << mate_in << "\n";
+        } else if ( mate_in < 0 ) {
+            std::cout << "Eval           : #" << mate_in << "\n";
+        } else {
+            std::cout << "Eval           : #\n";
+        }
+    } else {
+        std::cout << "Eval           : " << static_cast<float>(sr.getEval())*1e-2 << "\n";
+    }
     return sr.getMove().toUCI();
 }
 

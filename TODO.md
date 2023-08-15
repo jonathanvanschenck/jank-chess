@@ -10,7 +10,8 @@
   - [x] Profile code: should moves be passed by reference or value?
   - [x] Change moves from a `std::vector<Move>` to a preallocated stack (does that allow `alphaBeta(...)` beyond depth 3?)
   - [x] Create a search function that actually tracks the `bestmove`
-  - [ ] Use TT to speed up in the search
+  - [x] Use TT to speed up in the search
+  - [ ] Add SEE and delta pruning to quiesce (probably also futility pruning to search?)
   - [ ] Track the PV in the search
   - [ ] Use move ordering in search
   - [ ] Change moves from a `std::vector<MoveCache>` to a preallocated stack

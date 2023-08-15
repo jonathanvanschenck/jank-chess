@@ -84,6 +84,7 @@ class Move {
         BBOARD fromBB() { return BBoard::fromIdx(movebits & 0x3F); }
         BBOARD toBB() { return BBoard::fromIdx((movebits >> 6) & 0x3F); }
 
+        void setNull() { movebits = 0; }
         bool isNull() { return movebits == 0; }
         bool isQuiet() { return (movebits >> 12) == 0; }
         bool isDoublePawnPush() { return (movebits >> 12) == 1; }
