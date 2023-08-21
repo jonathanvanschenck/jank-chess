@@ -34,23 +34,29 @@ int main ()
     // board.loadFen("4B3/R7/5pkn/5ppp/8/8/8/4K3 b - - 0 1");
     // board.generatePsudoLegalMoves();
     // int good = 0;
+    // cout << "-----\n";
     // for ( Move* mptr = board.moveListBegin(); mptr < board.moveListEnd(); mptr++ ) {
     //     board.make(mptr);
     //     if ( !board.leftInCheck() ) good++;
-    //     std::cout << mptr->toUCI() << "\n";
+    //     Move m1 = *mptr;
+    //     Move m2 = board.parseUCIMove(mptr->toUCI());
+    //     cout << m1.toUCI() << "\n";
+    //     cout << m1.fromIdx() << " : " << m1.toIdx() << "\n";
+    //     cout << m2.fromIdx() << " : " << m2.toIdx() << "\n";
+    //     cout << "-----\n";
     //     board.unmake(mptr);
     // }
-    // std::cout << good << "\n";
+    // cout << good << "\n";
     // board.loadFen("4k3/8/8/8/8/8/5NB1/4K3 w - -");
     Game game(1e8);
     // game.loadFen("r3k2r/2ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R b Kkq -");
     // game.loadFen("rnbqkbnr/3ppppp/3p4/8/1p3B2/1P6/PP1NPPPP/R2pKBNR w KQkq - 0 9");
 
-    // game.loadFen("8/8/6pr/6p1/5pPk/5P1p/5P1K/R7 w - - 0 1"); // mate in 3 for white
+    game.loadFen("8/8/6pr/6p1/5pPk/5P1p/5P1K/R7 w - - 0 1"); // mate in 3 for white
     // game.loadFen("8/8/6pr/6p1/5pPk/5P1p/5P1K/6R1 b - - 0 1");  // mate in 2 for white
     // game.loadFen("8/7r/6p1/6p1/5pPk/5P1p/5P1K/6R1 w - - 0 1"); // in 2
     // game.loadFen("8/8/6pr/6p1/5pPk/5PRp/5P1K/8 b - - 0 1"); // in 1
-    game.loadFen("8/8/6pr/6p1/6Pk/5Ppp/5P1K/8 w - - 0 1"); // in 1
+    // game.loadFen("8/8/6pr/6p1/6Pk/5Ppp/5P1K/8 w - - 0 1"); // in 1
     // game.loadFen("8/8/6pr/6p1/6Pk/5PPp/7K/8 b - - 0 1"); // checkmate
 
 
@@ -62,8 +68,6 @@ int main ()
     // game.loadFen("8/7k/5ppP/6pK/6P1/6P1/8/7R w - - 0 1"); // checkmate for Black
     cout << game.getBoardPtr()->stringify();
 
-    // cout << game.getBoard().getZobristHash() << "\n";
-    // cout << game.getBoard().calculateZobristHash() << "\n";
     SearchResult sr = game.search(1000);
     cout << "Depth          : " << sr.getTargetDepth() << "\n";
     cout << "Searched nodes : " << sr.getNodesSearched() << "\n";

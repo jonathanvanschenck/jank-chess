@@ -61,10 +61,14 @@ void Game::searchLoop(SearchResult* srptr) {
     srptr->incTargetDepth();
     eval = searchAlphaBeta(srptr, -EVAL_INF, EVAL_INF);
 
+    // HACK HACK HACK : this should be removed once we have move ordering
+    Move best = srptr->getMove();
+    int beval = srptr->getEval();
+
     // Loop through to max depth
     while ( !srptr->foundMate() && srptr->incTargetDepth() < MAX_SEARCH_DEPTH ) {
         // Check the timer to bail early
-        if ( srptr->overtime() ) return;
+        if ( srptr->overtime() ) break;
 
         // Run the next ply search, using an aspirational window
         //  to hopefully cut ealier
@@ -84,7 +88,18 @@ void Game::searchLoop(SearchResult* srptr) {
         } else {
             eval = asp_eval;
         }
+
+
+        // HACK HACK HACK : the should be removed once we have move ordering
+        if ( !srptr->overtime() ) {
+            best = srptr->getMove();
+            beval = srptr->getEval();
+        }
     }
+    
+    // HACK HACK HACK : the should be removed once we have move ordering
+    srptr->setMove(best);
+    srptr->setEval(beval);
 }
 
 int Game::searchAlphaBeta(SearchResult* srptr, int alpha, int beta) {
@@ -211,6 +226,7 @@ int Game::searchAlphaBetaRecurse(SearchResult* srptr, int alpha, int beta) {
         ) {
             
             // TODO : Come back and check this once we implement tt_save...
+            // FIXME : I think this is wrong??
             // Correct the eval, if it is mate, since mate is encoded from the root
             //     of the search, but the eval in the TEntry is encoded from the
             //     current position, so we need to add in the depth of the current
@@ -337,7 +353,8 @@ int Game::searchQuiesce(SearchResult* srptr, int alpha, int beta) {
             return EVAL_INF;
         }
 
-        // TODO : add some clever cuts (delta, bad move SSE, etc.)
+        // TODO : add some clever cuts (delta, bad move SEE, etc.)
+        // TODO : But DON'T use SEE if it is a promotion!
 
         board.make(mptr);
         eval = -searchQuiesce(srptr, -beta, -alpha);

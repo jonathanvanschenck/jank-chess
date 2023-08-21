@@ -120,8 +120,11 @@ class Board {
         bool inCheck();
         bool leftInCheck();
         bool inCheck(Color);
-        _Piece whyInCheck(Color);
         bool isEndGame();
+
+        _Piece getPieceOn(BBOARD, Color);
+        BBOARD generateAttacksAgainst(int sqidx);
+        int calculateSEE(Move*);
 
         std::string stringify();
         std::string fen();

@@ -739,15 +739,6 @@ bool Board::inCheck(Color side) {
            (Attack::getQueenAttacks(king_idx, bbOccupied) & bbPieces[Board::pWhiteQueen + oside]) ||
            (Attack::getKingAttacks(king_idx) & bbPieces[Board::pWhiteKing + oside]);
 };
-// bool Board::whyInCheck(Color side) {
-//     int king_idx = BBoard::LS1Idx(bbPieces[Board::pWhiteKing + side]);
-//     Color oside = static_cast<Color>((side+1)%2);
-//     if (Attack::getPawnAttacks(king_idx, side, bbPieces[oside]) & bbPieces[Board::pWhitePawn + oside]) return Pawn;
-//     if (Attack::getKnightAttacks(king_idx) & bbPieces[Board::pWhiteKnight + oside]) return 
-//     if (Attack::getBishopAttacks(king_idx, bbOccupied) & bbPieces[Board::pWhiteBishop + oside])
-//     if (Attack::getRookAttacks(king_idx, bbOccupied) & bbPieces[Board::pWhiteRook + oside])
-//     if (Attack::getQueenAttacks(king_idx, bbOccupied) & bbPieces[Board::pWhiteQueen + oside])
-// };
 
 
 void Board::_apply_move(Move* mptr, Color side, _Piece p, _Piece cp) {
@@ -822,13 +813,7 @@ _Piece Board::_apply_move(Move* mptr, Color side, _Piece p) {
     if ( mptr->isEnPassant() ) {
         cp = Pawn;
     } else if ( mptr->isCapture() ) {
-        BBOARD to = mptr->toBB();
-        for ( int _p = Pawn; _p <= King; _p ++ ) {
-            if ( bbPieces[2*(1+_p) + oside] & to ) {
-                cp = static_cast<_Piece>(_p);
-                break;
-            }
-        }
+        cp = getPieceOn(mptr->toBB(), oside);
     }
     _apply_move(mptr, side, p, cp);
     return cp;
@@ -838,14 +823,7 @@ void Board::make(Move* mptr) {
 
     Color side = getSideToMove();
     Color oside = static_cast<Color>(!side);
-    _Piece p;
-    BBOARD from = mptr->fromBB();
-    for ( int _p = Pawn; _p <= King; _p ++ ) {
-        if ( bbPieces[2*(1+_p) + side] & from ) {
-            p = static_cast<_Piece>(_p);
-            break;
-        }
-    }
+    _Piece p = getPieceOn(mptr->fromBB(), side);
 
     _Piece cp = _apply_move(mptr, side, p);
 
@@ -965,12 +943,12 @@ int Board::eval() {
     int score = 0;
 
     // Tomasz Michniewski's Piece Valuation
-    score += 20000*(BBoard::popCount(bbPieces[pWhiteKing]) - BBoard::popCount(bbPieces[pBlackKing]));
-    score +=   900*(BBoard::popCount(bbPieces[pWhiteQueen]) - BBoard::popCount(bbPieces[pBlackQueen]));
-    score +=   500*(BBoard::popCount(bbPieces[pWhiteRook]) - BBoard::popCount(bbPieces[pBlackRook]));
-    score +=   330*(BBoard::popCount(bbPieces[pWhiteBishop]) - BBoard::popCount(bbPieces[pBlackBishop]));
-    score +=   320*(BBoard::popCount(bbPieces[pWhiteKnight]) - BBoard::popCount(bbPieces[pBlackKnight]));
-    score +=   100*(BBoard::popCount(bbPieces[pWhitePawn]) - BBoard::popCount(bbPieces[pBlackPawn]));
+    score += NominalPieceValues[King]*(BBoard::popCount(bbPieces[pWhiteKing]) - BBoard::popCount(bbPieces[pBlackKing]));
+    score += NominalPieceValues[Queen]*(BBoard::popCount(bbPieces[pWhiteQueen]) - BBoard::popCount(bbPieces[pBlackQueen]));
+    score += NominalPieceValues[Rook]*(BBoard::popCount(bbPieces[pWhiteRook]) - BBoard::popCount(bbPieces[pBlackRook]));
+    score += NominalPieceValues[Bishop]*(BBoard::popCount(bbPieces[pWhiteBishop]) - BBoard::popCount(bbPieces[pBlackBishop]));
+    score += NominalPieceValues[Knight]*(BBoard::popCount(bbPieces[pWhiteKnight]) - BBoard::popCount(bbPieces[pBlackKnight]));
+    score += NominalPieceValues[Pawn]*(BBoard::popCount(bbPieces[pWhitePawn]) - BBoard::popCount(bbPieces[pBlackPawn]));
 
     // Pawns
     b = bbPieces[pWhitePawn];
@@ -1106,14 +1084,8 @@ Move Board::parseUCIMove(std::string mstring) {
 
     BBOARD fromBB = BBoard::fromIdx(from);
 
-    _Piece piece;
     Color stm = getSideToMove();
-    for ( int p = Pawn; p <= King; p++ ) {
-        if ( bbPieces[2*(1+p) + stm] & fromBB ) {
-            piece = static_cast<_Piece>(p);
-            break;
-        }
-    };
+    _Piece piece = getPieceOn(fromBB, stm);
 
     if ( piece == Pawn ) {
         int tr = to/8;
@@ -1168,3 +1140,76 @@ Move Board::parseUCIMove(std::string mstring) {
         return m;
     }
 }
+
+
+// NOTE : does not check if the move is a capture, soooooooo, ya.
+_Piece Board::getPieceOn(BBOARD sq, Color color) {
+    for ( int p = Pawn; p <= King; p++ ) {
+        if ( bbPieces[2*(1+p) + color] & sq ) {
+            return static_cast<_Piece>(p);
+        }
+    };
+    return InvalidPiece;
+}
+// int Board::calculateSEE(Move* mptr) {
+//     // Initialize the gain stack
+// //     int gain[32];
+// //     int d = 0;
+// // 
+// //     BBOARD from = mptr->fromBB();
+// //     BBOARD to = mptr->toBB();
+// //     BBOARD occ = bbOccupied;
+// // 
+// //     Color stm = getSideToMove();
+// //     _Piece attacker = getPieceOn(from, stm);
+// //     _Piece attackee = getPieceOn(to, !stm);
+// // 
+// //     BBOARD ad_map = BBoard::empty;
+// //     ad_map |= Attack::getPawnAttacks();
+// //     for ( int pt = Knight; pt <= King; pt ++ ) {
+// //         
+// //     }
+// // 
+// //     gain[d] = NominalPieceValues[attackee];
+// // 
+// //     // TODO : handle xrays
+// //     // TODO : handle ep after the first move
+// // 
+// //     // Build up the diff for each capture
+// //     do {
+// //         // Calculated the gain (or loss) assuming that we
+// //         // retake the square
+// //         d++;
+// //         gain[d] = NominalPieceValues[attacker] - gain[d-1];
+// //         occ ^= from;
+// // 
+// //         attacker = InvalidPiece;
+// //         for 
+// // 
+// //         stm = static_cast<Color>(!stm);
+// //     } while ( from );
+// // 
+// //     // Work backwards to check if the player
+// //     //   will make a capture, based on if they
+// //     //   loose material
+// //     while ( d-- ) {
+// //         gain[d-1] = -max(-gain[d-1], gain[d]);
+// //     }
+// // 
+// //     return gain[0];
+// };
+
+// TODO : Finish and rename me!
+BBOARD Board::generateAttacksAgainst(int sqidx) {
+    BBOARD ad_map = BBoard::empty;
+    // // Pawns
+    // ad_map |= (getPawnAttacks(sqidx, white, bbOccupied | ep) & bbP); // TODO : how do I handle EP?
+    // ad_map |= getPawnAttacks(sqidx, black, bbOccupied | ep); // TODO : how do I handle EP?
+    // // Knights
+    // ad_map |= getKnightAttacks(sqidx);
+    // // 
+    // ad_map |= getKnightAttacks(sqidx);
+    return ad_map;
+};
+
+

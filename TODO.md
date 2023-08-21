@@ -11,10 +11,14 @@
   - [x] Change moves from a `std::vector<Move>` to a preallocated stack (does that allow `alphaBeta(...)` beyond depth 3?)
   - [x] Create a search function that actually tracks the `bestmove`
   - [x] Use TT to speed up in the search
-  - [ ] Add SEE and delta pruning to quiesce (probably also futility pruning to search?)
+  - [x] Patch search so that it only returns 'known best', since we aren't ordering moves yet.
+  - [ ] Figure out why the search time isn't updating in client
+  - [/] Add SEE and delta pruning to quiesce (probably also futility pruning to search?)
   - [ ] Track the PV in the search
   - [ ] Use move ordering in search
+  - [ ] Fix the TT checkmate update scheme
   - [ ] Change moves from a `std::vector<MoveCache>` to a preallocated stack
+  - [ ] Add algebraic notation renderer
 
 ## Amorphous goals
   - [ ] Use quiescence (and other extensions) in search

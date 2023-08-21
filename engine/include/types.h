@@ -22,7 +22,8 @@ enum Color {
 };
 
 enum Piece {
-    Pawn,
+    InvalidPiece = -1,
+    Pawn = 0,
     Knight,
     Bishop,
     Rook,

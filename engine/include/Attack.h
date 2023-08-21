@@ -5,15 +5,15 @@
 
 namespace Attack {
     void init();
-    BBOARD getRookAttacks(int, BBOARD);
-    BBOARD getBishopAttacks(int, BBOARD);
-    BBOARD getQueenAttacks(int, BBOARD);
-    BBOARD getKnightAttacks(int);
-    BBOARD getKingAttacks(int);
-    BBOARD getKingMoves(int, int, BBOARD, BBOARD);
-    BBOARD getPawnAttacks(int, Color, BBOARD);
-    BBOARD getPawnSinglePush(int, Color, BBOARD);
-    BBOARD getPawnDoublePush(int, Color, BBOARD);
+    BBOARD getRookAttacks(int sqidx, BBOARD occ);
+    BBOARD getBishopAttacks(int sqidx, BBOARD occ);
+    BBOARD getQueenAttacks(int sqidx, BBOARD occ);
+    BBOARD getKnightAttacks(int sqidx);
+    BBOARD getKingAttacks(int sqidx);
+    // BBOARD getKingMoves(int sqidx, int, BBOARD, BBOARD);
+    BBOARD getPawnAttacks(int sqidx, Color color, BBOARD opp_occ_and_ep);
+    BBOARD getPawnSinglePush(int sqidx, Color color, BBOARD empty);
+    BBOARD getPawnDoublePush(int sqidx, Color color, BBOARD empty);
 }
 
 #endif

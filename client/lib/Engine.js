@@ -90,7 +90,7 @@ class Engine extends EventEmitter {
     }
 
     async go(time_ms=null) {
-        const move = await this.send(`go${time_ms == null ? "" : "movetime "+time_ms}`, (time_ms ?? 1000)*3);
+        const move = await this.send(`go movetime ${time_ms || this.config.dwell_time_ms}`, (time_ms ?? this.config.dwell_time_ms)*3);
         return move;
     }
 

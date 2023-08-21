@@ -3,6 +3,15 @@
 
 #include "types.h"
 
+int NominalPieceValues[6] = {
+      100, // Pawn
+      320, // Knight
+      330, // Bishop
+      500, // Rook
+      900, // Queen
+    20000, // King
+};
+
 // Tomasz Michniewski's Piece Table
 namespace PieceTable {
     /**

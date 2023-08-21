@@ -32,5 +32,6 @@ module.exports = {
         socket: env.ENGINE_SOCKET || "/tmp/chess",
         binary: env.ENGINE_BINARY || "../engine/build/engine1FirstMove",
         memory_size_bytes: parseInt((env.ENGINE_MEMEORY_SIZE_MB || 1)*1e6),
+        dwell_time_ms: parseInt(env.ENGINE_DWELL_TIME || 2000),
     },
 };
