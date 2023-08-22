@@ -52,7 +52,6 @@ class Engine extends EventEmitter {
     }
 
     async send(msg, timeout_ms=1000) {
-        console.log(msg, timeout_ms);
         const con = createConnection(this.config.socket);
 
         await new Promise((res,rej) => {
