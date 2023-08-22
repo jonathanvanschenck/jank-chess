@@ -1142,7 +1142,6 @@ Move Board::parseUCIMove(std::string mstring) {
 }
 
 
-// NOTE : does not check if the move is a capture, soooooooo, ya.
 _Piece Board::getPieceOn(BBOARD sq, Color color) {
     for ( int p = Pawn; p <= King; p++ ) {
         if ( bbPieces[2*(1+p) + color] & sq ) {

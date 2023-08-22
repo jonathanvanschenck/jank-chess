@@ -14,6 +14,7 @@
   - [x] Patch search so that it only returns 'known best', since we aren't ordering moves yet.
   - [x] Figure out why the search time isn't updating in client
   - [/] Add SEE and delta pruning to quiesce (probably also futility pruning to search?)
+  - [x] Remove Chess 960 for accepted game types
   - [ ] Handle draws (repetition and 50 moves, etc.)
   - [ ] Track the PV in the search
   - [ ] Use move ordering in search

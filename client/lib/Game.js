@@ -209,8 +209,7 @@ class GameStream extends EventEmitter {
                 // TODO
                 break;
             case "challenge":
-                // TODO
-                this.api.POST(`/api/challenge/${json.challenge.id}/accept`);
+                this.handle_challenge(json.challenge);
                 break;
             case "challengeCanceled":
                 // TODO
@@ -219,6 +218,15 @@ class GameStream extends EventEmitter {
                 // TODO
                 break;
         }
+    }
+
+    handle_challenge(json) {
+        // TODO : include non-standard chess?
+        if ( json.variant.key != "standard" ) {
+            this.log.warn(`Receive challenge from ${json.challenger.name} for unsuported game of type ${json.variant.name}, declining offer`);
+            return this.api.POST(`/api/challenge/${json.id}/decline`);
+        }
+        return this.api.POST(`/api/challenge/${json.id}/accept`);
     }
 
     ingest_game(game) {
