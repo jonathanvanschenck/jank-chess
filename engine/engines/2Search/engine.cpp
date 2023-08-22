@@ -28,7 +28,8 @@ std::string parse_go(std::string in, Game* gptr) {
 
     int search_time = DEFAULT_SEARCH_TIME;
 
-    while ( instream >> arg && arg != "movetime" ) {
+    instream >> arg;
+    if ( arg == "movetime" ) {
         instream >> arg; // eat 'movetime'
         search_time = std::stoi(arg);
     }

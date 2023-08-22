@@ -59,13 +59,13 @@ class Engine extends EventEmitter {
                 if ( data.toString().match("READY") ) res();
             });
             con.on("error", rej);
-            setTimeout(rej, 1000, new Error("Timeout"));
+            setTimeout(rej, 1000, new Error("Timeout: never got ready"));
         });
 
         return new Promise((res, rej) => {
             con.once("data", (data) => res(data.toString().slice(0,-1)));
             con.write(msg+"\n");
-            if (timeout_ms) setTimeout(rej, timeout_ms, new Error("Timeout"));
+            if (timeout_ms) setTimeout(rej, timeout_ms, new Error("Timeout: never got move"));
         });
     }
 
@@ -89,8 +89,7 @@ class Engine extends EventEmitter {
     }
 
     async go(time_ms=null) {
-        // const move = await this.send(`go movetime ${time_ms || this.config.dwell_time_ms}`, (time_ms ?? this.config.dwell_time_ms)*3);
-        const move = await this.send(`go movetime ${time_ms || this.config.dwell_time_ms}`, null);
+        const move = await this.send(`go movetime ${time_ms || this.config.dwell_time_ms}`, (time_ms ?? this.config.dwell_time_ms)*2);
         return move;
     }
 

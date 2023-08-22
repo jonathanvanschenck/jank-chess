@@ -12,8 +12,9 @@
   - [x] Create a search function that actually tracks the `bestmove`
   - [x] Use TT to speed up in the search
   - [x] Patch search so that it only returns 'known best', since we aren't ordering moves yet.
-  - [ ] Figure out why the search time isn't updating in client
+  - [x] Figure out why the search time isn't updating in client
   - [/] Add SEE and delta pruning to quiesce (probably also futility pruning to search?)
+  - [ ] Handle draws (repetition and 50 moves, etc.)
   - [ ] Track the PV in the search
   - [ ] Use move ordering in search
   - [ ] Fix the TT checkmate update scheme

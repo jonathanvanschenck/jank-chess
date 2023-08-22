@@ -254,8 +254,10 @@ class GameManager extends EventEmitter {
 
         this.engine.setFEN(g.fen, this.activate_game.moves);
         g.on("move", (move) => {
-            this.engine.move(move);
-            if ( g.is_my_turn ) this.engine.go().then(move => g.move(move));
+            // this.engine.move(move);
+            if ( g.is_my_turn ) {
+                this.engine.setFEN(g.fen).then(() => this.engine.go().then(move => g.move(move)));
+            }
         });
         if ( g.is_my_turn ) this.engine.go().then(move => g.move(move));
     }
