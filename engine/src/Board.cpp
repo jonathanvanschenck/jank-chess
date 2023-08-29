@@ -473,12 +473,17 @@ void Board::generatePsudoLegalMoves() {
             toIdx = BBoard::LS1Idx(to);
             if ( ( toIdx / 8 ) == (7 - 7*stm) ) {
                 // Promotion
-                move_stack.push_back(fromIdx, toIdx, Queen, 1);
-                move_stack.push_back(fromIdx, toIdx, Knight, 1);
-                move_stack.push_back(fromIdx, toIdx, Rook, 1);  // TODO : remove in real engine
-                move_stack.push_back(fromIdx, toIdx, Bishop, 1);// TODO : remove in real engine
+                _Piece cp = getPieceOn(to, ostm);
+                move_stack.push_back(fromIdx, toIdx, Queen, 1, SORT_CAPTURE + NominalPieceValues[Queen] - NominalPieceValues[Pawn] + NominalPieceValues[cp]);
+                move_stack.push_back(fromIdx, toIdx, Knight, 1, SORT_CAPTURE + NominalPieceValues[Knight] - NominalPieceValues[Pawn] + NominalPieceValues[cp]);
+                move_stack.push_back(fromIdx, toIdx, Rook, 1, -SORT_INF);   // Search these last, becuase they are superfilous
+                move_stack.push_back(fromIdx, toIdx, Bishop, 1, -SORT_INF); // Search these last, becuase they are superfilous
+            } else if ( opp_occ & to ) {
+                _Piece cp = getPieceOn(to, ostm);
+                move_stack.push_back(fromIdx, toIdx, Move::Capture, SORT_CAPTURE + NominalPieceValues[cp] - NominalPieceValues[Pawn]);
             } else {
-                move_stack.push_back(fromIdx, toIdx, (opp_occ & to) ? Move::Capture : Move::EnPassant);
+                _Piece cp = Pawn;
+                move_stack.push_back(fromIdx, toIdx, Move::EnPassant, SORT_CAPTURE + NominalPieceValues[cp] - NominalPieceValues[Pawn]);
             }
         }
         // Single Pushes
@@ -487,19 +492,19 @@ void Board::generatePsudoLegalMoves() {
             toIdx = BBoard::LS1Idx(BBoard::popLS1B(&tos));
             if ( ( toIdx / 8 ) == (7 - 7*stm) ) {
                 // Promotion
-                move_stack.push_back(fromIdx, toIdx, Queen, 0); // No need to include rook/bishop
-                move_stack.push_back(fromIdx, toIdx, Knight, 0);
-                move_stack.push_back(fromIdx, toIdx, Rook, 0);  // TODO : remove in real engine
-                move_stack.push_back(fromIdx, toIdx, Bishop, 0);// TODO : remove in real engine
+                move_stack.push_back(fromIdx, toIdx, Queen, 0, SORT_PROMOTION + NominalPieceValues[Queen]); // No need to include rook/bishop
+                move_stack.push_back(fromIdx, toIdx, Knight, 0, SORT_PROMOTION + NominalPieceValues[Knight]);
+                move_stack.push_back(fromIdx, toIdx, Rook, 0,  -SORT_INF);  // Search these last, because they are superfilous
+                move_stack.push_back(fromIdx, toIdx, Bishop, 0, -SORT_INF); // Search these last, because they are superfilous
             } else {
-                move_stack.push_back(fromIdx, toIdx, Move::Quiet);
+                move_stack.push_back(fromIdx, toIdx, Move::Quiet, 0); // TODO : come up with some better way of sorting these?
             }
         }
         // Double Pushes
         tos = Attack::getPawnDoublePush(fromIdx, stm, bbEmpty);
         while ( tos ) {
             toIdx = BBoard::LS1Idx(BBoard::popLS1B(&tos));
-            move_stack.push_back(fromIdx, toIdx, Move::DoublePawnPush);
+            move_stack.push_back(fromIdx, toIdx, Move::DoublePawnPush, 0); // TODO : come up with some better way of sorting these?
         }
     }
 
@@ -511,7 +516,13 @@ void Board::generatePsudoLegalMoves() {
         while ( tos ) {
             to = BBoard::popLS1B(&tos);
             toIdx = BBoard::LS1Idx(to);
-            if ( !(self_occ & to ) ) move_stack.push_back(fromIdx, toIdx, (opp_occ & to) ? Move::Capture : Move::Quiet);
+            if ( self_occ & to ) continue;
+            if ( opp_occ & to ) {
+                _Piece cp = getPieceOn(to, ostm);
+                move_stack.push_back(fromIdx, toIdx, Move::Capture, SORT_CAPTURE + NominalPieceValues[cp] - NominalPieceValues[Knight]);
+            } else {
+                move_stack.push_back(fromIdx, toIdx, Move::Quiet, 0); // TODO : come up with some better way of sorting these?
+            }
         }
     }
 
@@ -523,7 +534,13 @@ void Board::generatePsudoLegalMoves() {
         while ( tos ) {
             to = BBoard::popLS1B(&tos);
             toIdx = BBoard::LS1Idx(to);
-            if ( !(self_occ & to ) ) move_stack.push_back(fromIdx, toIdx, (opp_occ & to) ? Move::Capture : Move::Quiet);
+            if ( self_occ & to ) continue;
+            if ( opp_occ & to ) {
+                _Piece cp = getPieceOn(to, ostm);
+                move_stack.push_back(fromIdx, toIdx, Move::Capture, SORT_CAPTURE + NominalPieceValues[cp] - NominalPieceValues[Bishop]);
+            } else {
+                move_stack.push_back(fromIdx, toIdx, Move::Quiet, 0); // TODO : come up with some better way of sorting these?
+            }
         }
     }
 
@@ -535,7 +552,13 @@ void Board::generatePsudoLegalMoves() {
         while ( tos ) {
             to = BBoard::popLS1B(&tos);
             toIdx = BBoard::LS1Idx(to);
-            if ( !(self_occ & to ) ) move_stack.push_back(fromIdx, toIdx, (opp_occ & to) ? Move::Capture : Move::Quiet);
+            if ( self_occ & to ) continue;
+            if ( opp_occ & to ) {
+                _Piece cp = getPieceOn(to, ostm);
+                move_stack.push_back(fromIdx, toIdx, Move::Capture, SORT_CAPTURE + NominalPieceValues[cp] - NominalPieceValues[Rook]);
+            } else {
+                move_stack.push_back(fromIdx, toIdx, Move::Quiet, 0); // TODO : come up with some better way of sorting these?
+            }
         }
     }
 
@@ -547,7 +570,13 @@ void Board::generatePsudoLegalMoves() {
         while ( tos ) {
             to = BBoard::popLS1B(&tos);
             toIdx = BBoard::LS1Idx(to);
-            if ( !(self_occ & to ) ) move_stack.push_back(fromIdx, toIdx, (opp_occ & to) ? Move::Capture : Move::Quiet);
+            if ( self_occ & to ) continue;
+            if ( opp_occ & to ) {
+                _Piece cp = getPieceOn(to, ostm);
+                move_stack.push_back(fromIdx, toIdx, Move::Capture, SORT_CAPTURE + NominalPieceValues[cp] - NominalPieceValues[Queen]);
+            } else {
+                move_stack.push_back(fromIdx, toIdx, Move::Quiet, 0); // TODO : come up with some better way of sorting these?
+            }
         }
     }
 
@@ -558,7 +587,13 @@ void Board::generatePsudoLegalMoves() {
     while ( tos ) {
         to = BBoard::popLS1B(&tos);
         toIdx = BBoard::LS1Idx(to);
-        if ( !(self_occ & to ) ) move_stack.push_back(fromIdx, toIdx, (opp_occ & to) ? Move::Capture : Move::Quiet);
+        if ( self_occ & to ) continue;
+        if ( opp_occ & to ) {
+            _Piece cp = getPieceOn(to, ostm);
+            move_stack.push_back(fromIdx, toIdx, Move::Capture, SORT_CAPTURE + NominalPieceValues[cp] - NominalPieceValues[King]);
+        } else {
+            move_stack.push_back(fromIdx, toIdx, Move::Quiet, 0); // TODO : come up with some better way of sorting these?
+        }
     }
 
     // TODO : yucky, can we please make this better :(
@@ -598,7 +633,7 @@ void Board::generatePsudoLegalMoves() {
                 (Attack::getKingAttacks(fromIdx+2) & bbPieces[Board::pWhiteKing + ostm])
             ) // g1/g8 can't be attacked
     ) {
-        move_stack.push_back(fromIdx, fromIdx + 2, Move::CastleKingside);
+        move_stack.push_back(fromIdx, fromIdx + 2, Move::CastleKingside, 0); // TODO : find a better way to sort these
     }
     // Queenside
     if (
@@ -623,7 +658,7 @@ void Board::generatePsudoLegalMoves() {
                 (Attack::getKingAttacks(fromIdx-2) & bbPieces[Board::pWhiteKing + ostm])
             ) // c1/c8 can't be attacked
     ) {
-        move_stack.push_back(fromIdx, fromIdx - 2, Move::CastleQueenside);
+        move_stack.push_back(fromIdx, fromIdx - 2, Move::CastleQueenside, 0); // TODO : find a better way to sort these
     }
 };
 void Board::generatePsudoLegalQuiescenceMoves() {
@@ -633,6 +668,7 @@ void Board::generatePsudoLegalQuiescenceMoves() {
     move_stack.reset();
 
     Color stm = getSideToMove();
+    Color ostm = static_cast<Color>(!stm);
     BBOARD opp_occ = bbPieces[static_cast<Color>(!stm)];
     BBOARD opp_occ_and_ep = opp_occ | ep;
 
@@ -647,12 +683,17 @@ void Board::generatePsudoLegalQuiescenceMoves() {
             toIdx = BBoard::LS1Idx(to);
             if ( ( toIdx / 8 ) == (7 - 7*stm) ) {
                 // Promotion
-                move_stack.push_back(fromIdx, toIdx, Queen, 1);
-                move_stack.push_back(fromIdx, toIdx, Knight, 1);
-                move_stack.push_back(fromIdx, toIdx, Rook, 1);  // TODO : remove in real engine
-                move_stack.push_back(fromIdx, toIdx, Bishop, 1);// TODO : remove in real engine
+                _Piece cp = getPieceOn(to, ostm);
+                move_stack.push_back(fromIdx, toIdx, Queen, 1, SORT_CAPTURE + NominalPieceValues[Queen] - NominalPieceValues[Pawn] + NominalPieceValues[cp]);
+                move_stack.push_back(fromIdx, toIdx, Knight, 1, SORT_CAPTURE + NominalPieceValues[Knight] - NominalPieceValues[Pawn] + NominalPieceValues[cp]);
+                move_stack.push_back(fromIdx, toIdx, Rook, 1, -SORT_INF);  // Search these last, because they are superfilous
+                move_stack.push_back(fromIdx, toIdx, Bishop, 1, -SORT_INF);// Search these last, because they are superfilous
+            } else if ( opp_occ & to ) {
+                _Piece cp = getPieceOn(to, ostm);
+                move_stack.push_back(fromIdx, toIdx, Move::Capture, SORT_CAPTURE + NominalPieceValues[cp] - NominalPieceValues[Pawn]);
             } else {
-                move_stack.push_back(fromIdx, toIdx, (opp_occ & to) ? Move::Capture : Move::EnPassant);
+                _Piece cp = Pawn;
+                move_stack.push_back(fromIdx, toIdx, Move::EnPassant, SORT_CAPTURE + NominalPieceValues[cp] - NominalPieceValues[Pawn]);
             }
         }
         // Quiet Promotions
@@ -661,10 +702,10 @@ void Board::generatePsudoLegalQuiescenceMoves() {
             toIdx = BBoard::LS1Idx(BBoard::popLS1B(&tos));
             if ( ( toIdx / 8 ) == (7 - 7*stm) ) {
                 // Promotion
-                move_stack.push_back(fromIdx, toIdx, Queen, 0); // No need to include rook/bishop
-                move_stack.push_back(fromIdx, toIdx, Knight, 0);
-                move_stack.push_back(fromIdx, toIdx, Rook, 0);  // TODO : remove in real engine
-                move_stack.push_back(fromIdx, toIdx, Bishop, 0);// TODO : remove in real engine
+                move_stack.push_back(fromIdx, toIdx, Queen, 0, SORT_PROMOTION + NominalPieceValues[Queen]); // No need to include rook/bishop
+                move_stack.push_back(fromIdx, toIdx, Knight, 0, SORT_PROMOTION + NominalPieceValues[Knight]);
+                move_stack.push_back(fromIdx, toIdx, Rook, 0,  -SORT_INF);  // Search these last, because they are superfilous
+                move_stack.push_back(fromIdx, toIdx, Bishop, 0, -SORT_INF); // Search these last, because they are superfilous
             }
         }
     }
@@ -675,8 +716,10 @@ void Board::generatePsudoLegalQuiescenceMoves() {
         fromIdx = BBoard::LS1Idx(BBoard::popLS1B(&bb));
         BBOARD caps = Attack::getKnightAttacks(fromIdx) & opp_occ;
         while ( caps ) {
-            toIdx = BBoard::LS1Idx(BBoard::popLS1B(&caps));
-            move_stack.push_back(fromIdx, toIdx, Move::Capture);
+            to = BBoard::popLS1B(&caps);
+            toIdx = BBoard::LS1Idx(to);
+            _Piece cp = getPieceOn(to, ostm);
+            move_stack.push_back(fromIdx, toIdx, Move::Capture, SORT_CAPTURE + NominalPieceValues[cp] - NominalPieceValues[Knight]);
         }
     }
 
@@ -686,8 +729,10 @@ void Board::generatePsudoLegalQuiescenceMoves() {
         fromIdx = BBoard::LS1Idx(BBoard::popLS1B(&bb));
         BBOARD caps = Attack::getBishopAttacks(fromIdx, bbOccupied) & opp_occ;
         while ( caps ) {
-            toIdx = BBoard::LS1Idx(BBoard::popLS1B(&caps));
-            move_stack.push_back(fromIdx, toIdx, Move::Capture);
+            to = BBoard::popLS1B(&caps);
+            toIdx = BBoard::LS1Idx(to);
+            _Piece cp = getPieceOn(to, ostm);
+            move_stack.push_back(fromIdx, toIdx, Move::Capture, SORT_CAPTURE + NominalPieceValues[cp] - NominalPieceValues[Bishop]);
         }
     }
 
@@ -697,8 +742,10 @@ void Board::generatePsudoLegalQuiescenceMoves() {
         fromIdx = BBoard::LS1Idx(BBoard::popLS1B(&bb));
         BBOARD caps = Attack::getRookAttacks(fromIdx, bbOccupied) & opp_occ;
         while ( caps ) {
-            toIdx = BBoard::LS1Idx(BBoard::popLS1B(&caps));
-            move_stack.push_back(fromIdx, toIdx, Move::Capture);
+            to = BBoard::popLS1B(&caps);
+            toIdx = BBoard::LS1Idx(to);
+            _Piece cp = getPieceOn(to, ostm);
+            move_stack.push_back(fromIdx, toIdx, Move::Capture, SORT_CAPTURE + NominalPieceValues[cp] - NominalPieceValues[Rook]);
         }
     }
 
@@ -708,8 +755,10 @@ void Board::generatePsudoLegalQuiescenceMoves() {
         fromIdx = BBoard::LS1Idx(BBoard::popLS1B(&bb));
         BBOARD caps = Attack::getQueenAttacks(fromIdx, bbOccupied) & opp_occ;
         while ( caps ) {
-            toIdx = BBoard::LS1Idx(BBoard::popLS1B(&caps));
-            move_stack.push_back(fromIdx, toIdx, Move::Capture);
+            to = BBoard::popLS1B(&caps);
+            toIdx = BBoard::LS1Idx(to);
+            _Piece cp = getPieceOn(to, ostm);
+            move_stack.push_back(fromIdx, toIdx, Move::Capture, SORT_CAPTURE + NominalPieceValues[cp] - NominalPieceValues[Queen]);
         }
     }
 
@@ -718,8 +767,10 @@ void Board::generatePsudoLegalQuiescenceMoves() {
     fromIdx = BBoard::LS1Idx(BBoard::popLS1B(&bb));
     BBOARD caps = Attack::getKingAttacks(fromIdx) & opp_occ;
     while ( caps ) {
-        toIdx = BBoard::LS1Idx(BBoard::popLS1B(&caps));
-        move_stack.push_back(fromIdx, toIdx, Move::Capture);
+        to = BBoard::popLS1B(&caps);
+        toIdx = BBoard::LS1Idx(to);
+        _Piece cp = getPieceOn(to, ostm);
+        move_stack.push_back(fromIdx, toIdx, Move::Capture, SORT_CAPTURE + NominalPieceValues[cp] - NominalPieceValues[King]);
     }
 };
 

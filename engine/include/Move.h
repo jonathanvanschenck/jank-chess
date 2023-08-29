@@ -98,12 +98,64 @@ class Move {
         std::string toUCI();
 };
 
+constexpr int SORT_INF       = 400000000;
+constexpr int SORT_PV        = 200000000;
+constexpr int SORT_CAPTURE   = 100000000;
+constexpr int SORT_PROMOTION =  90000000;
+
+class RankableMove {
+    private:
+        Move m;
+        int score;
+
+    public:
+        RankableMove(const RankableMove&) = default; // Suppress error, see assignment operator below
+        RankableMove()
+            : m()
+            , score(-SORT_INF)
+            {}
+        RankableMove(Move _m, int _score)
+            : m(_m)
+            , score(_score)
+            {}
+        RankableMove(uint16_t movebits, int _score)
+            : m(movebits)
+            , score(_score)
+            {}
+        RankableMove(int from, int to, int _score)
+            : m(from, to)
+            , score(_score)
+            {}
+        RankableMove(int from, int to, Move::Descriptor description, int _score)
+            : m(from, to, description)
+            , score(_score)
+            {}
+        RankableMove(int from, int to, Piece piece, int _score)
+            : m(from, to, piece)
+            , score(_score)
+            {}
+        RankableMove(int from, int to, Piece piece, bool capture, int _score)
+            : m(from, to, piece, capture)
+            , score(_score)
+            {}
+
+        int getScore() { return score; }
+        void setScore(int _score) { score = _score; }
+        Move getMove() { return m; }
+        Move* getMovePtr() { return &m; }
+
+        void operator=(RankableMove other) { m = other.getMove(); score = other.getScore(); }
+        bool operator==(RankableMove other) { return m == other.getMove(); }
+        bool operator!=(RankableMove other) { return m != other.getMove(); }
+};
+
 constexpr unsigned int MAX_PLY = 40;
 constexpr unsigned int MAX_MOVES = 218;
 
 class MoveStack {
     private:
-        Move moves[MAX_PLY*MAX_MOVES];
+        RankableMove moves[MAX_PLY*MAX_MOVES];
+        int scores[MAX_PLY*MAX_MOVES];
         unsigned int ply;
         unsigned int current_move[MAX_PLY];
         unsigned int last_move[MAX_PLY];
@@ -115,14 +167,14 @@ class MoveStack {
         void dec_ply();
 
         void push_back();
-        void push_back(uint16_t movebits);
-        void push_back(int from, int to);
-        void push_back(int from, int to, Move::Descriptor description);
-        void push_back(int from, int to, Piece piece);
-        void push_back(int from, int to, Piece piece, bool capture);
+        void push_back(uint16_t movebits, int nominal_score);
+        void push_back(int from, int to, int nominal_score);
+        void push_back(int from, int to, Move::Descriptor description, int nominal_score);
+        void push_back(int from, int to, Piece piece, int nominal_score);
+        void push_back(int from, int to, Piece piece, bool capture, int nominal_score);
 
-        Move* begin();
-        Move* end();
+        RankableMove* first();
+        RankableMove* next();
 };
 
 #endif

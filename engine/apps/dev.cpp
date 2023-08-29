@@ -25,6 +25,12 @@ int main ()
 {
     init();
 
+    // int test[3] = {0, 1, 2};
+    // int* intptr = test + 1;
+    // cout << *intptr << "\n";
+    // test[1] = 7;
+    // cout << *intptr << "\n";
+
     // Transposition tt(1 << 6);
     // cout << tt.getSize() << "\n";
 
@@ -34,17 +40,20 @@ int main ()
     // board.loadFen("4B3/R7/5pkn/5ppp/8/8/8/4K3 b - - 0 1");
     // board.generatePsudoLegalMoves();
     // int good = 0;
+    // cout << sizeof(Move) << "\n";
     // cout << "-----\n";
     // for ( Move* mptr = board.moveListBegin(); mptr < board.moveListEnd(); mptr++ ) {
     //     board.make(mptr);
     //     if ( !board.leftInCheck() ) good++;
-    //     Move m1 = *mptr;
-    //     Move m2 = board.parseUCIMove(mptr->toUCI());
-    //     cout << m1.toUCI() << "\n";
-    //     cout << m1.fromIdx() << " : " << m1.toIdx() << "\n";
-    //     cout << m2.fromIdx() << " : " << m2.toIdx() << "\n";
-    //     cout << "-----\n";
+    //     // Move m1 = *mptr;
+    //     // Move m2 = board.parseUCIMove(mptr->toUCI());
+    //     // cout << m1.toUCI() << "\n";
+    //     // cout << m1.fromIdx() << " : " << m1.toIdx() << "\n";
+    //     // cout << m2.fromIdx() << " : " << m2.toIdx() << "\n";
+    //     // cout << "-----\n";
     //     board.unmake(mptr);
+    //     int idx = mptr - board.moveListBegin();
+    //     cout << idx << "\n";
     // }
     // cout << good << "\n";
     // board.loadFen("4k3/8/8/8/8/8/5NB1/4K3 w - -");
@@ -66,9 +75,11 @@ int main ()
     // game.loadFen("8/5p1k/5prP/5PpK/6P1/6P1/8/7R w - - 0 1"); // mate in 1 for Black
     // game.loadFen("8/5p1k/5pPP/6pK/6P1/6P1/8/7R b - - 0 1"); // mate in 1 for Black
     // game.loadFen("8/7k/5ppP/6pK/6P1/6P1/8/7R w - - 0 1"); // checkmate for Black
-    cout << game.getBoardPtr()->stringify();
 
-    SearchResult sr = game.search(1500);
+//     game.loadFen("r3k2r/ppp2ppp/8/1q6/8/8/PP1Q1PbP/2KRR3 b kq - 1 17");
+//     cout << game.getBoardPtr()->stringify();
+// 
+    SearchResult sr = game.search(1000);
     cout << "Depth          : " << sr.getTargetDepth() << "\n";
     cout << "Searched nodes : " << sr.getNodesSearched() << "\n";
     cout << "Searched qnodes: " << sr.getQuiescenceNodesSearched() << "\n";

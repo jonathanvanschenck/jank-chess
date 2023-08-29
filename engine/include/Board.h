@@ -115,8 +115,10 @@ class Board {
         Move parseUCIMove(std::string);
         void generatePsudoLegalMoves();
         void generatePsudoLegalQuiescenceMoves();
-        Move* moveListBegin() { return move_stack.begin(); }
-        Move* moveListEnd() { return move_stack.end(); }
+        // Move* moveListBegin() { return move_stack.begin(); }
+        // Move* moveListEnd() { return move_stack.end(); }
+        RankableMove* getFirstMove() { return move_stack.first(); }
+        RankableMove* getNextMove() { return move_stack.next(); }
         bool inCheck();
         bool leftInCheck();
         bool inCheck(Color);

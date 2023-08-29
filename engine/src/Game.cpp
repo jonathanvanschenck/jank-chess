@@ -112,8 +112,10 @@ int Game::searchAlphaBeta(SearchResult* srptr, int alpha, int beta) {
     srptr->resetPlyFromRoot();
 
     board.generatePsudoLegalMoves();
-    Move* best_move_ptr = board.moveListBegin(); // FIXME : this only really works if we have sorted moves
-    for ( Move* mptr = board.moveListBegin(); mptr < board.moveListEnd(); mptr++ ) {
+    Move* best_move_ptr = board.getFirstMove()->getMovePtr(); // FIXME : this only really works if we have sorted moves
+    RankableMove* rmptr;
+    while ( (rmptr = board.getNextMove()) ) {
+        Move* mptr = rmptr->getMovePtr();
         // TODO : run selection sort against the move list
 
         // Check for king capture, in which case -- we win!
@@ -240,8 +242,10 @@ int Game::searchAlphaBetaRecurse(SearchResult* srptr, int alpha, int beta) {
     bool can_move = 0;
     board.generatePsudoLegalMoves();
     // TODO : run selection sort, then initialize "best_move_ptr" as the first move
-    best_move_ptr = board.moveListBegin();
-    for ( Move* mptr = board.moveListBegin(); mptr < board.moveListEnd(); mptr++ ) {
+    best_move_ptr = board.getFirstMove()->getMovePtr();
+    RankableMove* rmptr;
+    while ( (rmptr = board.getNextMove()) ) {
+        Move* mptr = rmptr->getMovePtr();
         // TODO : run selection sort against the move list
 
         // Check for king capture, in which case -- we win!
@@ -346,7 +350,9 @@ int Game::searchQuiesce(SearchResult* srptr, int alpha, int beta) {
 
 
     board.generatePsudoLegalQuiescenceMoves();
-    for ( Move* mptr = board.moveListBegin(); mptr < board.moveListEnd(); mptr++ ) {
+    RankableMove* rmptr;
+    while ( (rmptr = board.getNextMove()) ) {
+        Move* mptr = rmptr->getMovePtr();
 
         // Bail early on king captures:
         if ( mptr->isCapture() && (mptr->toBB() & board.getKing(static_cast<Color>(!board.getSideToMove()))) ) {
@@ -377,7 +383,9 @@ Move Game::getFirstMove() {
     Move m = Move();
     bool found = false;
     board.generatePsudoLegalMoves();
-    for ( Move* mptr = board.moveListBegin(); mptr < board.moveListEnd(); mptr++ ) {
+    RankableMove* rmptr;
+    while ( (rmptr = board.getNextMove()) ) {
+        Move* mptr = rmptr->getMovePtr();
         board.make(mptr);
         if ( !board.leftInCheck() ) {
             m = *mptr;
@@ -393,7 +401,9 @@ Move Game::getFirstMove() {
 int Game::alphaBeta(int alpha, int beta, int depth) {
     if ( depth == 0 ) return board.quiesce();
     board.generatePsudoLegalMoves();
-    for ( Move* mptr = board.moveListBegin(); mptr < board.moveListEnd(); mptr++ ) {
+    RankableMove* rmptr;
+    while ( (rmptr = board.getNextMove()) ) {
+        Move* mptr = rmptr->getMovePtr();
         board.make(mptr);
         int score;
         if ( !board.leftInCheck() ) {

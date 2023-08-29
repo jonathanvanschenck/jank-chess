@@ -37,34 +37,49 @@ void MoveStack::dec_ply() {
 
 // Push back "constructors"
 void MoveStack::push_back() {
-    moves[MAX_MOVES*ply + current_move[ply]++] = Move();
-    last_move[ply] = current_move[ply];
+    moves[MAX_MOVES*ply + last_move[ply]++] = RankableMove();
 };
-void MoveStack::push_back(uint16_t movebits) {
-    moves[MAX_MOVES*ply + current_move[ply]++] = Move(movebits);
-    last_move[ply] = current_move[ply];
+void MoveStack::push_back(uint16_t movebits, int nominal_score) {
+    moves[MAX_MOVES*ply + last_move[ply]++] = RankableMove(movebits, nominal_score);
 };
-void MoveStack::push_back(int from, int to) {
-    moves[MAX_MOVES*ply + current_move[ply]++] = Move(from, to);
-    last_move[ply] = current_move[ply];
+void MoveStack::push_back(int from, int to, int nominal_score) {
+    moves[MAX_MOVES*ply + last_move[ply]++] = RankableMove(from, to, nominal_score);
 };
-void MoveStack::push_back(int from, int to, Move::Descriptor description) {
-    moves[MAX_MOVES*ply + current_move[ply]++] = Move(from, to, description);
-    last_move[ply] = current_move[ply];
+void MoveStack::push_back(int from, int to, Move::Descriptor description, int nominal_score) {
+    moves[MAX_MOVES*ply + last_move[ply]++] = RankableMove(from, to, description, nominal_score);
 };
-void MoveStack::push_back(int from, int to, Piece piece) {
-    moves[MAX_MOVES*ply + current_move[ply]++] = Move(from, to, piece);
-    last_move[ply] = current_move[ply];
+void MoveStack::push_back(int from, int to, Piece piece, int nominal_score) {
+    moves[MAX_MOVES*ply + last_move[ply]++] = RankableMove(from, to, piece, nominal_score);
 };
-void MoveStack::push_back(int from, int to, Piece piece, bool capture) {
-    moves[MAX_MOVES*ply + current_move[ply]++] = Move(from, to, piece, capture);
-    last_move[ply] = current_move[ply];
+void MoveStack::push_back(int from, int to, Piece piece, bool capture, int nominal_score) {
+    moves[MAX_MOVES*ply + last_move[ply]++] = RankableMove(from, to, piece, capture, nominal_score);
 };
 
 
-Move* MoveStack::begin() {
-    return moves + MAX_MOVES*ply;
-};
-Move* MoveStack::end() {
-    return moves + MAX_MOVES*ply + last_move[ply];
-};
+RankableMove* MoveStack::first() {
+    if ( current_move[ply] >= last_move[ply] ) return nullptr;
+
+    // Selection Sort to get the next 
+    RankableMove* best_ptr = moves + MAX_MOVES*ply + current_move[ply];
+    RankableMove* current_ptr = moves + MAX_MOVES*ply + current_move[ply];
+    RankableMove* last_ptr = moves + MAX_MOVES*ply + last_move[ply];
+    for ( RankableMove* rmptr = current_ptr + 1; rmptr < last_ptr; rmptr++ ) {
+        if ( rmptr->getScore() > best_ptr->getScore() ) best_ptr = rmptr;
+    }
+
+    // Interchange 'best' and 'current', assuming they are different
+    if ( current_ptr != best_ptr ) {
+        RankableMove temp = *current_ptr;
+        *current_ptr = *best_ptr;
+        *best_ptr = temp;
+    }
+
+    return current_ptr;
+
+}
+RankableMove* MoveStack::next() {
+    RankableMove* rmptr = first();
+    current_move[ply]++;
+    return rmptr;
+}
+
