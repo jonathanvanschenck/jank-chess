@@ -59,7 +59,7 @@ class Engine extends EventEmitter {
                 if ( data.toString().match("READY") ) res();
             });
             con.on("error", rej);
-            setTimeout(rej, 1000, new Error("Timeout: never got ready"));
+            setTimeout(rej, Math.max(timeout_ms*2, 1000), new Error("Timeout: never got ready"));
         });
 
         return new Promise((res, rej) => {

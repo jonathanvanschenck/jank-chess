@@ -34,4 +34,9 @@ module.exports = {
         memory_size_bytes: parseInt((env.ENGINE_MEMEORY_SIZE_MB || 1)*1e6),
         dwell_time_ms: parseInt(env.ENGINE_DWELL_TIME || 2000),
     },
+    game_manager: {
+        stream: {
+            auto_accept_challenge: ( env.GAME_STREAM_AUTO_ACCEPT_CHALLENGE || "true" ) == "true"
+        }
+    },
 };

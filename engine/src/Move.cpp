@@ -83,3 +83,14 @@ RankableMove* MoveStack::next() {
     return rmptr;
 }
 
+
+void MoveStack::setScore(Move mv, int score) {
+    RankableMove* current_ptr = moves + MAX_MOVES*ply + current_move[ply];
+    RankableMove* last_ptr = moves + MAX_MOVES*ply + last_move[ply];
+    for ( RankableMove* rmptr = current_ptr; rmptr < last_ptr; rmptr++ ) {
+        if ( rmptr->getMove() == mv ) {
+            rmptr->setScore(score);
+            return;
+        }
+    }
+};

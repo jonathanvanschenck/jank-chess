@@ -58,6 +58,7 @@ int main ()
     // cout << good << "\n";
     // board.loadFen("4k3/8/8/8/8/8/5NB1/4K3 w - -");
     Game game(1e8);
+    // game.loadFen("Q6R/p1p2kpp/1b2p3/5q2/5P2/P2n4/2p3PP/2B4K b - - 2 32");
     // game.loadFen("r3k2r/2ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R b Kkq -");
     // game.loadFen("rnbqkbnr/3ppppp/3p4/8/1p3B2/1P6/PP1NPPPP/R2pKBNR w KQkq - 0 9");
 
@@ -81,9 +82,12 @@ int main ()
 // 
     SearchResult sr = game.search(1000);
     cout << "Depth          : " << sr.getTargetDepth() << "\n";
+    cout << "Asp Fails      : " << sr.getAspirationalFails() << "\n";
     cout << "Searched nodes : " << sr.getNodesSearched() << "\n";
     cout << "Searched qnodes: " << sr.getQuiescenceNodesSearched() << "\n";
     cout << "% qnodes       : " << static_cast<float>(sr.getQuiescenceNodesSearched())/static_cast<float>(sr.getNodesSearched()) << "\n";
+    cout << "TT Hits        : " << sr.getTranspositionTableHits() << "\n";
+    cout << "Exact TT Hits  : " << sr.getTranspositionTableExactHits() << "\n";
     cout << "Search Time ms : " << sr.getSearchTime() << "\n";
     cout << "kn/ms          : " << static_cast<float>(sr.getNodesSearched())*1e-3/static_cast<float>(sr.getSearchTime()) << "\n";
     cout << "Best Move      : " << sr.getMove().toUCI() << "\n";

@@ -1,5 +1,6 @@
 
 #include <iostream>
+#include <cmath>
 #include <string>
 #include <limits>
 #include <chrono>
@@ -35,7 +36,6 @@ void Game::loadFen(std::string fen) {
     board.loadFen(fen);
 };
 void Game::makeUCIMove(std::string mstring) {
-    // TODO
     Move m = board.parseUCIMove(mstring);
     board.make(&m);
 };
@@ -61,45 +61,44 @@ void Game::searchLoop(SearchResult* srptr) {
     srptr->incTargetDepth();
     eval = searchAlphaBeta(srptr, -EVAL_INF, EVAL_INF);
 
-    // HACK HACK HACK : this should be removed once we have move ordering
-    Move best = srptr->getMove();
-    int beval = srptr->getEval();
-
     // Loop through to max depth
-    while ( !srptr->foundMate() && srptr->incTargetDepth() < MAX_SEARCH_DEPTH ) {
-        // Check the timer to bail early
-        if ( srptr->overtime() ) break;
+    int delta_alpha = SEARCH_APS_DELTA;
+    int delta_beta = SEARCH_APS_DELTA;
+    while (
+        !srptr->foundMate()
+        && !srptr->overtime()
+        && srptr->incTargetDepth() < MAX_SEARCH_DEPTH
+    ) {
 
         // Run the next ply search, using an aspirational window
         //  to hopefully cut ealier
-        int asp_alpha = eval - 50;
-        int asp_beta  = eval + 50;
+        int asp_alpha = eval - delta_alpha;
+        int asp_beta  = eval + delta_beta;
         int asp_eval  = searchAlphaBeta(srptr, asp_alpha, asp_beta);
 
         // If the eval failed high or low, then our true eval is outside
         //  the window, and we need to reserach with a wider window to
         //  get the true eval
         // Otherwise, we got away with a faster search
-        if ( asp_eval <= asp_alpha || asp_eval >= asp_beta ) {
-            // TODO : use a more sophisticated re-search paradigm. CPW suggests
-            //        that we copy stockfish and only expand the window bound
-            //        that failed
-            eval = searchAlphaBeta(srptr, -EVAL_INF, EVAL_INF);
-        } else {
-            eval = asp_eval;
+        while ( asp_eval <= asp_alpha || asp_eval >= asp_beta ) {
+            if ( srptr->overtime() ) break;
+
+            srptr->incAspirationalFails();
+
+            // Update the apsiration window bound that failed
+            if ( asp_eval <= asp_alpha ) delta_alpha += SEARCH_APS_DELTA_INC;
+            if ( asp_eval >= asp_beta ) delta_beta += SEARCH_APS_DELTA_INC;
+
+            // Repeat search
+            asp_alpha = std::max(eval - delta_alpha, -EVAL_INF);
+            asp_beta  = std::min(eval + delta_beta, EVAL_INF);
+            asp_eval = searchAlphaBeta(srptr, asp_alpha, asp_beta);
         }
 
-
-        // HACK HACK HACK : the should be removed once we have move ordering
-        if ( !srptr->overtime() ) {
-            best = srptr->getMove();
-            beval = srptr->getEval();
-        }
+        eval = asp_eval;
     }
-    
-    // HACK HACK HACK : the should be removed once we have move ordering
-    srptr->setMove(best);
-    srptr->setEval(beval);
+
+    if ( !srptr->overtime() ) tt.saveEntry(board.getZobristHash(), eval, srptr->getDepthRemaining(), TEntry::EVAL_EXACT, srptr->getMovePtr());
 }
 
 int Game::searchAlphaBeta(SearchResult* srptr, int alpha, int beta) {
@@ -107,16 +106,27 @@ int Game::searchAlphaBeta(SearchResult* srptr, int alpha, int beta) {
 
     int eval = 0;
     bool can_move = 0;
-    int best_eval_yet = -EVAL_INF;
+    Move* best_move_ptr;
     srptr->resetDepthRemaining();
     srptr->resetPlyFromRoot();
 
+    // Must happend before `board.setMoveScore(...)`
     board.generatePsudoLegalMoves();
-    Move* best_move_ptr = board.getFirstMove()->getMovePtr(); // FIXME : this only really works if we have sorted moves
+
+    // Check the TT to extract the best move from previous search
+    TEntry* teptr = tt.getEntry(board.getZobristHash());
+    if ( teptr ) {
+        // We found a result, which is by definition of a lesser depth,
+        // so we are just going to pull the best move
+        best_move_ptr = teptr->getBestMovePtr();
+        srptr->incTranspositionTableHits();
+        board.setMoveScore(*best_move_ptr, SORT_HASH);
+    }
+    // This should just pull the "best move" we just set from the TT
+    best_move_ptr = board.getFirstMove()->getMovePtr();
     RankableMove* rmptr;
     while ( (rmptr = board.getNextMove()) ) {
         Move* mptr = rmptr->getMovePtr();
-        // TODO : run selection sort against the move list
 
         // Check for king capture, in which case -- we win!
         if ( mptr->toBB() & board.getKing(static_cast<Color>(!board.getSideToMove())) ) {
@@ -216,8 +226,12 @@ int Game::searchAlphaBetaRecurse(SearchResult* srptr, int alpha, int beta) {
     // Check the TT if we have evaulated this position already
     TEntry* teptr = tt.getEntry(board.getZobristHash());
     if ( teptr ) {
-        // We've found the position, and the depth
-        // TODO : extract whatever the "best" move was for move sorting later
+        // Extract whatever the "best" move was for move sorting later
+        best_move_ptr = teptr->getBestMovePtr();
+
+        srptr->incTranspositionTableHits();
+
+        // TODO : for non-PV, CPW recommends always returning the result
 
         // Check for a valid TEntry:
         if (
@@ -236,12 +250,20 @@ int Game::searchAlphaBetaRecurse(SearchResult* srptr, int alpha, int beta) {
             if ( abs(eval) > EVAL_INF - 100 ) {
                 eval < 0 ? eval += srptr->getPlyFromRoot() : eval -= srptr->getPlyFromRoot();
             }
+
+            srptr->incTranspositionTableExactHits();
+            return eval;
         }
     }
 
     bool can_move = 0;
     board.generatePsudoLegalMoves();
-    // TODO : run selection sort, then initialize "best_move_ptr" as the first move
+    if ( !best_move_ptr->isNull() ) {
+        // We already have the best move from a previous search,
+        // so prioritize that move in this search
+        // NOTE : needs to happen after moves are generated
+        board.setMoveScore(*best_move_ptr, SORT_HASH);
+    }
     best_move_ptr = board.getFirstMove()->getMovePtr();
     RankableMove* rmptr;
     while ( (rmptr = board.getNextMove()) ) {

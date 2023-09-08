@@ -184,8 +184,9 @@ class Game extends EventEmitter {
 }
 
 class GameStream extends EventEmitter {
-    constructor(api, log) {
+    constructor(config, api, log) {
         super();
+        this.config = config;
         this.api = api;
         this.log = log?.create_child("S") ?? Logger.noop();
 
@@ -221,6 +222,7 @@ class GameStream extends EventEmitter {
     }
 
     handle_challenge(json) {
+        if ( !this.config.auto_accept_challenge ) return;
         // TODO : include non-standard chess?
         if ( json.variant.key != "standard" ) {
             this.log.warn(`Receive challenge from ${json.challenger.name} for unsuported game of type ${json.variant.name}, declining offer`);
@@ -240,14 +242,15 @@ class GameStream extends EventEmitter {
 }
 
 class GameManager extends EventEmitter {
-    constructor(api, engine, log) {
+    constructor(config, api, engine, log) {
         super();
 
+        this.config = config;
         this.api = api;
         this.engine = engine;
         this.log = log?.create_child("GM") ?? Logger.noop();
 
-        this.stream = new GameStream(this.api, this.log);
+        this.stream = new GameStream(this.config.stream, this.api, this.log);
 
         this.games = [];
     }

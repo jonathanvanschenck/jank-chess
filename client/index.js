@@ -10,7 +10,7 @@ const env = require("./env.js");
 const log = Logger.console("", env.log);
 const engine = new Engine(env.engine, log);
 const api = new API(env.api);
-const gm = new GameManager(api, engine, log);
+const gm = new GameManager(env.game_manager, api, engine, log);
 
 /**
  * Gracefully tear the client down

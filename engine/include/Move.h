@@ -99,7 +99,7 @@ class Move {
 };
 
 constexpr int SORT_INF       = 400000000;
-constexpr int SORT_PV        = 200000000;
+constexpr int SORT_HASH      = 200000000;
 constexpr int SORT_CAPTURE   = 100000000;
 constexpr int SORT_PROMOTION =  90000000;
 
@@ -175,6 +175,7 @@ class MoveStack {
 
         RankableMove* first();
         RankableMove* next();
+        void setScore(Move mv, int score);
 };
 
 #endif

@@ -11,6 +11,8 @@
 constexpr int EVAL_INF = 10000;
 constexpr int EVAL_INVALID = (1 << 16) - 1;
 constexpr int MAX_SEARCH_DEPTH = MAX_PLY - 10;      // leave some room for search extensions/quiescene
+constexpr int SEARCH_APS_DELTA = 50;
+constexpr int SEARCH_APS_DELTA_INC = 30;
 
 class SearchResult {
     private:
@@ -19,8 +21,11 @@ class SearchResult {
         int target_depth;
         int depth_remaining;
         int ply_from_root;
+        unsigned long asp_window_fails;
         unsigned long nodes_searched;
         unsigned long qnodes_searched;
+        unsigned long tt_hits;
+        unsigned long tt_exact_hits;
         const unsigned int duration_ms;
         const std::chrono::time_point<std::chrono::system_clock> start;
         std::chrono::time_point<std::chrono::system_clock> end;
@@ -30,8 +35,11 @@ class SearchResult {
             : target_depth(0)
             , depth_remaining(0)
             , ply_from_root(0)
+            , asp_window_fails(0)
             , nodes_searched(0)
             , qnodes_searched(0)
+            , tt_hits(0)
+            , tt_exact_hits(0)
             , duration_ms(dms)
             , start(std::chrono::system_clock::now())
             {};
@@ -39,8 +47,11 @@ class SearchResult {
             : target_depth(0)
             , depth_remaining(0)
             , ply_from_root(0)
+            , asp_window_fails(0)
             , nodes_searched(0)
             , qnodes_searched(0)
+            , tt_hits(0)
+            , tt_exact_hits(0)
             , duration_ms(dms)
             , move_to_make(m2m)
             , value(eval)
@@ -48,6 +59,7 @@ class SearchResult {
             {};
 
         Move getMove() { return move_to_make; }
+        Move* getMovePtr() { return &move_to_make; }
         void setMove(Move m) { move_to_make = m; }
         int getEval() { return value; }
         void setEval(int eval) { value = eval; }
@@ -61,10 +73,16 @@ class SearchResult {
         int decPlyFromRoot() { return ply_from_root--; }
         int incPlyFromRoot() { return ply_from_root++; }
         void resetPlyFromRoot() { ply_from_root = 0; }
+        unsigned long getAspirationalFails() { return asp_window_fails; }
+        unsigned long incAspirationalFails() { return asp_window_fails++; }
         unsigned long getNodesSearched() { return nodes_searched; }
         unsigned long incNodesSearched() { return nodes_searched++; }
         unsigned long getQuiescenceNodesSearched() { return qnodes_searched; }
         unsigned long incQuiescenceNodesSearched() { return qnodes_searched++; }
+        unsigned long incTranspositionTableHits() { return tt_hits++; }
+        unsigned long getTranspositionTableHits() { return tt_hits; }
+        unsigned long incTranspositionTableExactHits() { return tt_exact_hits++; }
+        unsigned long getTranspositionTableExactHits() { return tt_exact_hits; }
 
         void stop() { end = std::chrono::system_clock::now(); }
 

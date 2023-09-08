@@ -119,6 +119,7 @@ class Board {
         // Move* moveListEnd() { return move_stack.end(); }
         RankableMove* getFirstMove() { return move_stack.first(); }
         RankableMove* getNextMove() { return move_stack.next(); }
+        void setMoveScore(Move mv, int score) { move_stack.setScore(mv, score); }
         bool inCheck();
         bool leftInCheck();
         bool inCheck(Color);

@@ -35,25 +35,28 @@ std::string parse_go(std::string in, Game* gptr) {
     }
 
     SearchResult sr = gptr->search(search_time);
-    std::cout << "Search Results:\n";
-    std::cout << " -- Depth          : " << sr.getTargetDepth() << "\n";
-    std::cout << " -- Searched nodes : " << sr.getNodesSearched() << "\n";
-    std::cout << " -- Searched qnodes: " << sr.getQuiescenceNodesSearched() << "\n";
-    std::cout << " -- % qnodes       : " << static_cast<float>(sr.getQuiescenceNodesSearched())/static_cast<float>(sr.getNodesSearched()) << "\n";
-    std::cout << " -- Search Time ms : " << sr.getSearchTime() << "\n";
-    std::cout << " -- kn/ms          : " << static_cast<float>(sr.getNodesSearched())*1e-3/static_cast<float>(sr.getSearchTime()) << "\n";
-    std::cout << "Best Move      : " << sr.getMove().toUCI() << "\n";
+    std::cout << "Search Results:" << std::endl;
+    std::cout << " -- Depth          : " << sr.getTargetDepth() << std::endl;
+    std::cout << " -- Asp Fails      : " << sr.getAspirationalFails() << std::endl;
+    std::cout << " -- Searched nodes : " << sr.getNodesSearched() << std::endl;
+    std::cout << " -- Searched qnodes: " << sr.getQuiescenceNodesSearched() << std::endl;
+    std::cout << " -- % qnodes       : " << static_cast<float>(sr.getQuiescenceNodesSearched())/static_cast<float>(sr.getNodesSearched()) << std::endl;
+    std::cout << " -- TT Hits        : " << sr.getTranspositionTableHits() << std::endl;
+    std::cout << " -- Exact TT Hits  : " << sr.getTranspositionTableExactHits() << std::endl;
+    std::cout << " -- Search Time ms : " << sr.getSearchTime() << std::endl;
+    std::cout << " -- kn/ms          : " << static_cast<float>(sr.getNodesSearched())*1e-3/static_cast<float>(sr.getSearchTime()) << std::endl;
+    std::cout << "Best Move      : " << sr.getMove().toUCI() << std::endl;
     if ( sr.foundMate() ) {
         int mate_in = sr.getMateIn();
         if ( mate_in > 0 ) {
-            std::cout << "Eval           : #+" << mate_in << "\n";
+            std::cout << "Eval           : #+" << mate_in << std::endl;
         } else if ( mate_in < 0 ) {
-            std::cout << "Eval           : #" << mate_in << "\n";
+            std::cout << "Eval           : #" << mate_in << std::endl;
         } else {
-            std::cout << "Eval           : #\n";
+            std::cout << "Eval           : #" << std::endl;
         }
     } else {
-        std::cout << "Eval           : " << static_cast<float>(sr.getEval())*1e-2 << "\n";
+        std::cout << "Eval           : " << static_cast<float>(sr.getEval())*1e-2 << std::endl;
     }
     return sr.getMove().toUCI();
 }
@@ -98,7 +101,7 @@ std::string parse_position(std::string in, Game* gptr) {
     while ( instream >> arg ) gptr->makeUCIMove(arg);
 
     // TODO : remove me, for debugging
-    std::cout << "In position:\n" << gptr->getBoardPtr()->stringify();
+    std::cout << "In position:" << std::endl << gptr->getBoardPtr()->stringify();
     return "";
 }
 
@@ -111,7 +114,7 @@ std::string parse_make(std::string in, Game* gptr) {
     gptr->makeUCIMove(arg);
 
     // TODO : remove me, for debugging
-    std::cout << "In position:\n" << gptr->getBoardPtr()->stringify();
+    std::cout << "In position:" << std::endl << gptr->getBoardPtr()->stringify();
     return "";
 }
 
@@ -161,7 +164,7 @@ int main(int argc, char* argv[]) {
 
     init();
 
-    std::cout << "Starting game with memory " << static_cast<float>(size)/1e6 << "Mb\n";
+    std::cout << "Starting game with memory " << static_cast<float>(size)/1e6 << "Mb" << std::endl;
     Game game(size);
 
     // Remove the existing socket file if it exists
@@ -218,9 +221,9 @@ int main(int argc, char* argv[]) {
         // For example, echoing back the data as the response.
         std::string received_data(buffer, bytes_read);
         received_data = received_data.substr(0,received_data.find("\n")); // strip off terminal "\n"
+        std::cout << "IO : Received: " << received_data << std::endl;
         std::string response = parse(received_data, &game);
-        std::cout << "Received: " << received_data << std::endl;
-        std::cout << "Sending: " << response << std::endl;
+        std::cout << "IO : Sending: " << response << std::endl;
         response.append("\n");
         send(client_socket, response.c_str(), response.size(), 0);
 

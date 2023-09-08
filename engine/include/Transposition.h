@@ -25,6 +25,8 @@ class TEntry {
         uint8_t getDepthSearched() { return depth; }
         int getEval() { return eval; }
         TEntry::EVAL_FLAGS getEvalFlag() { return static_cast<TEntry::EVAL_FLAGS>(flags); }
+        Move getBestMove() { return bestmove; }
+        Move* getBestMovePtr() { return &bestmove; }
 
         void write(BBOARD zobrist_hash, int evaluation, int depth_remaining, TEntry::EVAL_FLAGS eflags, Move* mptr);
 
