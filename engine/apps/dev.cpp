@@ -58,6 +58,7 @@ int main ()
     // cout << good << "\n";
     // board.loadFen("4k3/8/8/8/8/8/5NB1/4K3 w - -");
     Game game(1e8);
+    game.loadFen("rnbqkbnr/1p1ppppp/p7/2pP4/8/8/PPP1PPPP/RNBQKBNR w KQkq - 0 3");
     // game.loadFen("Q6R/p1p2kpp/1b2p3/5q2/5P2/P2n4/2p3PP/2B4K b - - 2 32");
     // game.loadFen("r3k2r/2ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R b Kkq -");
     // game.loadFen("rnbqkbnr/3ppppp/3p4/8/1p3B2/1P6/PP1NPPPP/R2pKBNR w KQkq - 0 9");

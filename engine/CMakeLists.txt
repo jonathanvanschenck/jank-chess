@@ -15,6 +15,11 @@ set(CMAKE_BUILD_TYPE Release)
 option(JC_BUILD_PERFT "Build perft" ON)
 option(JC_BUILD_DEV "Build dev" ON)
 
+option(JC_BUILD_MEMES "Include memes in engine" ON)
+if(JC_BUILD_MEMES)
+    add_definitions(-DUSE_MEMES)
+endif()
+
 add_subdirectory(include)
 add_subdirectory(src)
 

@@ -16,10 +16,11 @@
   - [x] Remove Chess 960 for accepted game types
   - [x] Use move ordering in search
   - [x] Single bounded aspirational window updates
+  - [ ] Add finite depth search types
   - [ ] Add check extensions
   - [ ] Handle draws (repetition and 50 moves, etc.)
   - [ ] Track the PV in the search
-  - [ ] MUST ENPASSANT
+  - [x] MUST EN-PASSANT
   - [ ] Fix the TT checkmate update scheme
   - [ ] Add SEE and delta pruning to quiesce (probably also futility pruning to search?)
   - [ ] Change moves from a `std::vector<MoveCache>` to a preallocated stack

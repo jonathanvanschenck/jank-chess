@@ -52,6 +52,7 @@ SearchResult Game::search(int search_time) {
 };
 
 void Game::searchLoop(SearchResult* srptr) {
+
     int eval;
     // TODO : handle case where there is exactly 1 possible move in current position
     //        Techically, we don't need to search at all -- just play the only
@@ -148,7 +149,18 @@ int Game::searchAlphaBeta(SearchResult* srptr, int alpha, int beta) {
 
         can_move = 1;
 
+#ifdef USE_MEMES
+        if ( mptr->isEnPassant() ) {
+            // ALWAYS PLAY EN PASSANT!
+            eval = EVAL_INF + 1;
+        } else {
+            eval = -searchAlphaBetaRecurse(srptr, -beta, -alpha);
+        }
+#endif
+#ifndef USE_MEMES
         eval = -searchAlphaBetaRecurse(srptr, -beta, -alpha);
+#endif
+
         board.unmake(mptr);
         srptr->incDepthRemaining();
         srptr->decPlyFromRoot();
